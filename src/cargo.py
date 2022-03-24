@@ -1,4 +1,5 @@
 import rs_talk
+import llssb
 from llssb import LlssbType
 
 class CargoProtocol:
@@ -20,7 +21,7 @@ class Cargo:
         if self.cargo_protocol == CargoProtocol.RS_TALK:
             return 1
         # 128B - (8B cloaking, 7B DMX, 64B crypto-sign, 1B Type)
-        if self.llssb_type == LlssbType.STD_ENCRYPTION:
+        if self.llssb_type == LlssbType.STD_SIGN:
             return 48
         # 128B - (8B cloaking, 7B DMX, 64B crypto-sign, 1B Type,
         # 1B length, 20B hash of first blob in chain)
@@ -30,10 +31,8 @@ class Cargo:
     def _assemble_pkt(self, payload):
         if self.cargo_protocol == CargoProtocol.RS_TALK:
             return rs_talk.encode(payload)
-        if self.llssb_type == LlssbType.STD_ENCRYPTION:
-            pass
-        if self.llssb_type == LlssbType.SSB_LOG:
-            pass
+        if self.cargo_protocol == CargoProtocol.LLSSB:
+            return llssb.encode(payload, self.llssb_type)
 
     def pkt_gen(self):
         """Encodes the message and iteratively yields packets"""
