@@ -6,39 +6,49 @@ class CargoProtocol:
     RS_TALK = 0
     LLSSB = 1
 
-class Cargo:
+class Port:
+    SOME_PORT_1 = 1
+    SOME_PORT_2 = 2
 
-    def __init__(self, msg, cargo_protocol, llssb_type = None):
-        self.msg = msg
-        self.cargo_protocol = cargo_protocol
-        self.llssb_type = llssb_type
-        self.payload_size = self._payload_size()
+class CargoSend:
+
+    def __init__(self, port, data):
+        self.port = port
+        self.data = data
         self.next_pos = 0
 
-    def _payload_size(self):
-        """Returns the amount of payload per packet depending on payload_type"""
-        # Only 1B 'payload', rest is encryption
-        if self.cargo_protocol == CargoProtocol.RS_TALK:
-            return 1
-        # 128B - (8B cloaking, 7B DMX, 64B crypto-sign, 1B Type)
-        if self.llssb_type == LlssbType.STD_SIGN:
-            return 48
-        # 128B - (8B cloaking, 7B DMX, 64B crypto-sign, 1B Type,
-        # 1B length, 20B hash of first blob in chain)
-        if self.llssb_type == LlssbType.SSB_LOG:
-            return 27
+    def pack_next(self, llssb_type = LlssbType.STD_48B):
+        """Encodes the message and iteratively returns packets"""
+        if self.next_pos >= len(self.data):
+            print("No more data to be encoded")
+            return None
 
-    def _assemble_pkt(self, payload):
-        if self.cargo_protocol == CargoProtocol.RS_TALK:
-            return rs_talk.encode(payload)
-        if self.cargo_protocol == CargoProtocol.LLSSB:
-            return llssb.encode(payload, self.llssb_type)
+        start = self.next_pos
+        if llssb_type == LlssbType.STD_48B:
+            end = min(start + 48, len(self.data))
+            # TODO: Add proper padding
+            if end - start < 48: # data shorter than available payload space
+                self.data += b'\0' * (48 - (end - start)) # add padding
+                end = len(self.data)
+            encoded = llssb.encode_48B(self.data[start:end])
+        elif llssb == LlssbType.SSB_LOG:
+            pass
 
-    def pkt_gen(self):
-        """Encodes the message and iteratively yields packets"""
-        while self.next_pos < len(self.msg):
-            start = self.next_pos
-            end = min(start + self.payload_size, len(self.msg))
-            self.next_pos = end
-            payload = self.msg[start:end]
-            yield self._assemble_pkt(payload)
+        self.next_pos = end
+        pkt = b'\0' * 16 + encoded # add RND and DMX (for now just placeholder)
+        return pkt
+
+class CargoRecv:
+
+    def __init__(self, port):
+        self.port = port
+        self.data = b''
+        self.length = 0 # first packet should specify length
+
+    def unpack_next(self, pkt):
+        demuxed_pkt = pkt[16:] # remove first 8B (for now just placeholder)
+        self.data += llssb.decode(demuxed_pkt)
+
+    # set flag when packet is complete + properly unpad payload
+    def get(self):
+        pass
