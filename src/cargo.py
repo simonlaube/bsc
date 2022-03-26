@@ -1,24 +1,24 @@
 import rs_talk
 import llssb
 from llssb import LlssbType
+from hashlib import sha256
 
 class CargoProtocol:
     RS_TALK = 0
     LLSSB = 1
 
-class Port:
-    SOME_PORT_1 = 1
-    SOME_PORT_2 = 2
-
 class CargoSend:
-
-    def __init__(self, port, data):
+    def __init__(self, port):
         self.port = port
-        self.data = data
+        self.data = b''
         self.next_pos = 0
+        self.seq = 0
+
+    def set_data(self, data):
+        self.data = data
 
     def pack_next(self, llssb_type = LlssbType.STD_48B):
-        """Encodes the message and iteratively returns packets"""
+        """Iteratively encodes the message and returns packets"""
         if self.next_pos >= len(self.data):
             print("No more data to be encoded")
             return None
@@ -35,19 +35,24 @@ class CargoSend:
             pass
 
         self.next_pos = end
-        pkt = b'\0' * 16 + encoded # add RND and DMX (for now just placeholder)
+        pkt = b'\0' * 8 + sha256(bytes([self.port + self.seq])).digest()[:7] + encoded # add RND (for now just placeholder)
         return pkt
 
 class CargoRecv:
-
     def __init__(self, port):
         self.port = port
         self.data = b''
         self.length = 0 # first packet should specify length
+        self.seq = 0
 
-    def unpack_next(self, pkt):
-        demuxed_pkt = pkt[16:] # remove first 8B (for now just placeholder)
+    def unpack_next(self, demuxed_pkt, seq):
+        if seq != self.seq:
+            # TODO: send NAK
+            return False
+        self.seq = self.seq * (-1) + 1 # 0 -> 1, 1 -> 0
         self.data += llssb.decode(demuxed_pkt)
+        print(self.data)
+        return True
 
     # set flag when packet is complete + properly unpad payload
     def get(self):

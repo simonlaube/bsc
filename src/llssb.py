@@ -22,19 +22,21 @@ def decode(demuxed_pkt):
     """Splits and checks the first byte for llssb-type,
     then hands it on to appropriate decoder
     """
-    type = int.from_bytes(demuxed_pkt[0:1], "little")
+    llssb_type = int.from_bytes(demuxed_pkt[0:1], "little")
     data = demuxed_pkt[1:]
 
-    if type == LlssbType.STD_48B:
+    if llssb_type == LlssbType.STD_48B:
         return decode_48B(data)
-    elif type == LlssbType.SSB_LOG:
+    elif llssb_type == LlssbType.SSB_LOG:
         return decode_ssb_log(data)
+    else:
+        print('Given llssb-type is not valid')
+        return b''
 
 # change this method once 64B signature implemented
 def decode_48B(data):
     payload = data[0:48]
     sign = data[48:80] # data[48:112] if signature is 64 B
-    print(sign)
     if sha256(pk + payload).digest() == sign:
         return payload
     else:
