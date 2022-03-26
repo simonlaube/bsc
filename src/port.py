@@ -17,6 +17,7 @@ class Port:
     def _set_is_sender(self, is_sender=True):
         if is_open:
             print('This port is currently open. is_sender can only be changed when port is closed.')
+            return
         self.is_sender = is_sender
 
     def prepare_to_send(self):
