@@ -25,7 +25,7 @@ class LoRaNode:
     def _send(self, data, port_nr):
         port = self.ports[port_nr]
         # TODO: Add Mutex to ensure no other thread uses port
-        if not port.prepare_to_send():
+        if not port.prepare_to_send('some secret'):
             return
         port.cargo_send(data, self.socket)
 
@@ -46,10 +46,14 @@ class LoRaNode:
         cloak_header = pkt[:8]
         dmx = pkt[8:15]
         for port in self.ports.values():
-            if dmx == sha256(bytes([port.port_nr + 0])).digest()[:7]:
-                port.handle_llssb_pkt(pkt[15:], 0) # seq = 0
+            if dmx == sha256((str(port.port_nr) + str(0)).encode('utf-8')).digest()[:7]:
+                port.handle_llssb_pkt(pkt[15:], 0, self.socket) # seq = 0
                 break
-            elif dmx == sha256(bytes([port.port_nr + 1])).digest()[:7]:
-                port.handle_llssb_pkt(pkt[15:], 1) # seq = 1
+            elif dmx == sha256((str(port.port_nr) + str(1)).encode('utf-8')).digest()[:7]:
+                port.handle_llssb_pkt(pkt[15:], 1, self.socket) # seq = 1
+                break
+            elif dmx == sha256((str(port.port_nr) + str(port.cargo_out.seq) + 'ack').encode('utf-8')).digest()[:7]:
+                port.handle_ack() # ack flag
                 break
             # TODO: add all possible combinations
+        print('Packet could not be demultiplexed')

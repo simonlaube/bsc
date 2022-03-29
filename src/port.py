@@ -1,5 +1,8 @@
-from cargo import CargoSend, CargoRecv
+from cargo import CargoOut, CargoIn
+from hashlib import sha256
 import time
+from machine import Timer
+from hashlib import sha256
 
 class PortNumber:
     # TODO: use random numbers to make hash more difficult to guess
@@ -9,10 +12,11 @@ class PortNumber:
 class Port:
     def __init__(self, port_nr, is_sender):
         self.port_nr = port_nr
-        self.is_sender = is_sender
+        self.secret = None
+        self.sender = sender # TODO: use secret in demux hash
         self.is_open = False
-        self.cargo_out = CargoSend(port_nr)
-        self.cargo_in = CargoRecv(port_nr)
+        self.cargo_out = CargoOut(port_nr)
+        self.cargo_in = CargoIn(port_nr)
 
     def _set_is_sender(self, is_sender=True):
         if is_open:
@@ -20,12 +24,13 @@ class Port:
             return
         self.is_sender = is_sender
 
-    def prepare_to_send(self):
+    def prepare_to_send(self, secret):
         if self.is_open:
             print('This port is currently open. You can retry send after port has closed.')
             return False
         if not self.is_sender:
             self._set_is_sender()
+        self.secret = secret
         return True
 
     def cargo_send(self, data, socket):
@@ -37,22 +42,32 @@ class Port:
             socket.send(pkt)
             print('send packet')
             # TODO: wait for ack, set timer
-            time.sleep(1)
+            while not self.cargo_out.ack:
+                print("ack: " + str(self.cargo_out.ack))
+                time.sleep(1) # TODO: set time according to LoRa toa rule
+                socket.send(pkt) # try sending again
+            self.cargo_out.ack = False
             pkt = self.cargo_out.pack_next()
         print("Packet is sent.")
 
-    def handle_llssb_pkt(self, data, seq):
+    def handle_llssb_pkt(self, demuxed_pkt, seq, socket):
         # check sequence number
-        if self.cargo_in.unpack_next(data[15:], 0):
-            self.send_ack()
+        if self.cargo_in.unpack_next(demuxed_pkt, seq):
+            print("packet is valid")
+            print(demuxed_pkt)
+            self.send_ack(seq, socket)
         else:
-            self.send_nak()
+            print("packet is not valid")
+            print(demuxed_pkt)
 
-    def send_ack(self):
-        pass
+    def handle_ack(self):
+        self.cargo_out.seq = (-1) * self.cargo_out.seq + 1
+        self.cargo_out.ack = True
 
-    def send_nak(self):
-        pass
+    def send_ack(self, seq, socket):
+        header = b'\0' * 8 + sha256((str(self.port_nr) + str(seq) + 'ack').encode('utf-8')).digest()[:7] 
+        pkt = header + b'\0' * 113
+        socket.send(pkt)
 
     def close(self):
-        pass
+        self.__init__(self.port_nr)

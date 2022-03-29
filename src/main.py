@@ -8,7 +8,6 @@ from communication import LoRaNode
 import rs_talk
 from llssb import LlssbType
 from port import PortNumber, Port
-from cargo import CargoSend, CargoRecv, CargoProtocol
 
 pycom.rgbled(0x00FF00)  # Green
 
