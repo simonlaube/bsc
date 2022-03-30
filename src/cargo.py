@@ -15,7 +15,6 @@ class CargoOut:
         self.next_pos = 0
         self.seq = 0
         self.ack = False
-        self.nak = False
         
     def set_data(self, data):
         self.data = data
