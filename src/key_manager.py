@@ -1,4 +1,4 @@
-import ubinascii
+import binascii as ubinascii
 import os
 
 # just for testing purposes

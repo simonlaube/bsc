@@ -6,26 +6,32 @@ from hashlib import sha256
 from port import PortNumber
 
 class LoRaNode:
-    def __init__(self, ports):
-        self.ports = ports
-        lora = LoRa(mode=LoRa.LORA, region=LoRa.EU868)
-        # TODO: test out multiple lora configurations
-        self.socket = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
-        self.socket.setblocking(True) # maybe change this later
+
+    def __init__(self, progs, debugging = False):
+        self.progs = progs
+        if debugging:
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.socket.sendto(b'test', ("127.0.0.1", 5000))
+            self.socket.recv(128)
+        else:
+            # TODO: test out multiple lora configurations
+            lora = LoRa(mode=LoRa.LORA, region=LoRa.EU868)
+            self.socket = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
+            self.socket.setblocking(True) # maybe change this later
 
         _thread.start_new_thread(self.listen, ())
         # send_time_broadcast()
 
-    def send_data(self, data, port_nr):
-        if port_nr not in self.ports:
-            print("Port number is not valid.")
+    def send_data(self, data, prog_id):
+        if prog_id not in self.progs:
+            print("Prog is not valid.")
             return
-        _thread.start_new_thread(self._send, (data, port_nr, ))
+        _thread.start_new_thread(self._send, (data, prog_id, ))
 
-    def _send(self, data, port_nr):
-        port = self.ports[port_nr]
+    def _send(self, data, prog_id):
+        prog = self.progs[prog_id]
         # TODO: Add Mutex to ensure no other thread uses port
-        if not port.prepare_to_send('some secret'):
+        if not prog.prepare_to_send('some secret'):
             return
         port.cargo_send(data, self.socket)
 

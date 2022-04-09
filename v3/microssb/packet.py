@@ -5,7 +5,7 @@ PKTTYPE_plain48 = 0x00 # ed25519 signature, single packet with 48B
 PKTTYPE_chain20 = 0x01 # ed25519 signature, start of hash sidechain
 
 def _dmx(name):
-    hashlib.sha256(name).digest()[:7]
+    return hashlib.sha256(name).digest()[:7]
 
 class Packet:
 
@@ -65,7 +65,7 @@ def plain_from_bytes(buf120, feed_id, seq, prev, verify_sign_fct):
     pkt.signature = buf120[56:]
 
     if verify_sign_fct: # packet has not yet been validated
-        if not verify_sign_fct(feed_id, pkt.signature, pkt.nam + buf120[:56]):
+        if not verify_sign_fct(feed_id, pkt.signature, pkt.name + buf120[:56]):
             print("Signature verifying failed")
             return None 
 

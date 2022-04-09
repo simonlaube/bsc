@@ -1,33 +1,40 @@
-import pycom
-from network import LoRa
-import socket
+import socket # uses python sockets for development
 import time
-import os
-from communication import LoRaNode
+from lora_node import LoRaNode
 #from hashlib import md5
+from prog import ProgList
 import rs_talk
 from llssb import LlssbType
-from port import PortNumber, Port
 
-pycom.rgbled(0x00FF00)  # Green
+import sys
+  
+  
 
-is_sender = True
+def main():
+    is_user_A = True
 
-if is_sender:
-    port1 = Port(PortNumber.SOME_PORT_1, is_sender=True)
-    ports = {
-        PortNumber.SOME_PORT_1 : port1
-    }
-    lora_node = LoRaNode(ports)
-    bs = b'Hello over there, this is just a string that is being sent over LoRa and the llssb protocol for testing.'
-    # print(bs)
-    lora_node.send_data(bs, PortNumber.SOME_PORT_1)
-else:
-    port1 = Port(PortNumber.SOME_PORT_1, is_sender=False)
-    ports = {
-        PortNumber.SOME_PORT_1 : port1
-    }
-    lora_node = LoRaNode(ports)
+    if len(sys.argv) > 1:
+        if sys.argv[1] == 'A':
+            is_user_A = True
+        elif sys.argv[1] == 'B':
+            is_user_A = False
+        else:
+            return
+    else:
+        print('You must specify a user')
+        return
+    if is_user_A:
+        print('started user A...')
+        lora_node = LoRaNode(True)
+        bs = b'Hello over there, this is just a string that is being sent over LoRa and the llssb protocol for testing.'
+        # print(bs)
+        lora_node.send_data(bs, ProgList.PROG_PAYLOAD)
+    else:
+        print('started user B...')
+        pass
+
+if __name__== "__main__":
+    main()
 """
 while True:
     s = cargo_send.pack_next(LlssbType.STD_48B)

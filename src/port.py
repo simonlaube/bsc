@@ -1,8 +1,6 @@
 from cargo import CargoOut, CargoIn
 from hashlib import sha256
 import time
-from machine import Timer
-from hashlib import sha256
 
 class PortNumber:
     # TODO: use random numbers / bytes / strings to make hash more difficult to guess
