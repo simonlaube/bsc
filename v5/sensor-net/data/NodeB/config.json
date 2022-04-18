@@ -1,1 +1,1 @@
-{"name": "NodeB", "feedID": "22de97ac42d55d23e46c7ecfe9cb6778f7b6da82ce25f301be69b7c22ab69d8e", "secret": "e00770e885577422f16ed7c67db6a96689fc3b75bac3b7c00c521de95e096a2f", "admin": "6acfe32a7b36fc7b99e202c8a1a896fb9ed5fa935a18f8b67073b1f07ca5f602"}
+{"name": "NodeB", "feed_id": "b1e560f2b7cd8adf3074c3e87b7e1a769f2a68f1fb8028caa91adda5eb8b75c0", "secret": "45a4beffb2f85e41f2886bd87ca192f9ad41646867a00cecd3b2000bebe99488", "admin": "a4401eb2f31d76a2f97e99162c5495b783e40dc37cf595baa73e60224685358c", "child_feeds": {}}

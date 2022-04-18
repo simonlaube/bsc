@@ -27,7 +27,12 @@ class RessourceManager:
         with open(path + 'config.json') as f:
             self.config = json.load(f)
         for i in self.config: # hex to bytes
-            if not i in ['alias', 'name']:
+            if i == 'child_feeds':
+                child_feeds = {}
+                for j, sk in self.config[i].items():
+                    child_feeds[util.fromhex(j)] = util.fromhex(sk)
+                self.config[i] = child_feeds
+            elif not i in ['alias', 'name']:
                 self.config[i] = util.fromhex(self.config[i])   
         print(self.config)
 
@@ -47,8 +52,8 @@ class RessourceManager:
     
     def _get_critical_feeds(self):
         """Returns a list of feed_ids that are considered critical."""
-        if self.config['feedID'] == self.config['admin']:
-            return None
+        if self.config['feed_id'] == self.config['admin']:
+            return []
         critical_feed_ids = []
         critical_feed_ids.append(self.config['admin'])
         # TODO: add child feeds of admin
@@ -57,7 +62,7 @@ class RessourceManager:
     def _get_front_dmx(self, feed_id):
         """Returns dmx of this feed with latest seq + 1. Returns None if given
         feed ID belongs to this repo."""
-        if feed_id == self.config['feedID']:
+        if feed_id == self.config['feed_id']:
             # TODO: also return None if it is child feed of current feed
             return None
         feed = self.repo.get_log(feed_id)
@@ -102,7 +107,7 @@ class RessourceManager:
         it will have highest priority.
         """
         for feed_id in self.repo.listlog():
-            if feed_id == self.config['feedID']:
+            if feed_id == self.config['feed_id']:
                 continue
             feed = self.repo.get_log(feed_id)
             if feed_id in self.critical_feeds:
@@ -110,8 +115,8 @@ class RessourceManager:
             else:
                 self.pri_queue.append(2, (self._pack_want(feed), None))
 
-    def _handle_front_receive(self, buf):
-        pass
+    def _handle_front_receive(self, buf, feed_id):
+        self.repo.get_log(feed_id).append(buf)
     
     def _handle_want_request(self, buf, neigh):
         buf = buf[7:]
@@ -132,23 +137,26 @@ class RessourceManager:
     def on_receive(self, buf, neigh):
         """If incoming packet dmx / hash is in filters, this function handles the
         packets appropriately. If not, the packet gets discarded."""
-        # TODO: uncloaking
+        # TODO: proper uncloaking
         dmx = buf[:7]
-        if dmx in self.dmx_front_filters.values():
-            print('received front dmx: ' + str(dmx))
-            self._handle_front_receive(buf)
-            
-        elif dmx in self.dmx_want_filters.values():
-            print('received want dmx: ' + str(dmx))
-            self._handle_want_request(buf, neigh)
+        for k, v in self.dmx_front_filters.items():
+            if v == dmx:
+                print('received front dmx: ' + str(dmx))
+                self._handle_front_receive(buf, k)
+                return
+           
+        for k, v in self.dmx_want_filters.items():
+            if v == dmx:
+                print('received want dmx: ' + str(dmx))
+                self._handle_want_request(buf, neigh)
+                return
 
+        hash_ptr = hashlib.sha256(buf).digest()[:20]
+        if hash_ptr in self.blob_filters.values():
+            print('received expected blob')
+            self._handle_blob_receive(buf)
         else:
-            hash_ptr = hashlib.sha256(buf).digest()[:20]
-            if hash_ptr in self.blob_filters.values():
-                print('received expected blob')
-                self._handle_blob_receive(buf)
-            else:
-                print('dmx not expected: ' + str(dmx))
+            print('dmx not expected: ' + str(dmx))
         # print('neighbour: ' + str(neighbour))
    
     def ressource_manager_loop(self):

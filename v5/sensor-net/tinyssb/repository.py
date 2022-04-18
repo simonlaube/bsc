@@ -42,14 +42,14 @@ class REPO:
     def __init__(self, path, verify_signature_fct):
         self.path = path
         self.vfct = verify_signature_fct
-        try: os.mkdir(self.path + '/_logs')
+        try: os.mkdir(self.path + '/_feeds')
         except: pass
         try: os.mkdir(self.path + '/_blob')
         except: pass
         self.open_logs = {}
 
     def _log_fn(self, fid):
-        return self.path + '/_logs/' + util.hex(fid) + '.log'
+        return self.path + '/_feeds/' + util.hex(fid) + '.log'
 
     def _blob_fn(self, hashval):
         h = util.hex(hashval)
@@ -57,7 +57,7 @@ class REPO:
 
     def listlog(self):
         lst = []
-        for fn in os.listdir(self.path + '/_logs/'):
+        for fn in os.listdir(self.path + '/_feeds/'):
             lst.append(util.fromhex(fn.split('.')[0]))
         return lst
 

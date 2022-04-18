@@ -10,8 +10,8 @@ class PriorityQueue:
         self.nr_priorities = nr_priorities 
         self.queue = []
         self._init_priority_queues()
-        self.slot_ranges = self._calculate_slots()
-        self.nr_pos = self.slot_ranges[-1]
+        self.slots = self._calculate_slots()
+        self.nr_pos = sum(self.slots)
         self.current_pos = 0 # iterates over all slots
         self.size = 0
     
@@ -23,13 +23,9 @@ class PriorityQueue:
         slots = []
         for i in range(0, self.nr_priorities):
             # exponential slot assignments.
-            slots.insert(0, int(pow(i + 1, 1.5))) 
-        for i in range(1, self.nr_priorities):
-            slots[i] = slots[i] + slots[i - 1]
+            s = sum(slots)
+            slots.insert(0, s + int(pow(i, 1.5))) 
         return slots
-    
-    def _next_pos(self):
-        self.current_pos = (self.current_pos + 1) % self.nr_pos
     
     def append(self, priority, pkt):
         # TODO: check for duplicates
@@ -47,8 +43,6 @@ class PriorityQueue:
         """Gets first packet in priority class. If class is empty, go to next class until pkt found.
         If no packet in priority queue, return None."""
         if self.size == 0:
-            # reset position
-            self.current_pos = 0
             return None
         i = 0
         # TODO: if queue is empty, first go to higher priorities
@@ -56,10 +50,10 @@ class PriorityQueue:
             priority = (priority + 1) % self.nr_priorities
             i += 1
         self.size -= 1
-        self._next_pos()
         return self.queue[priority].pop(0)
             
+
     def next(self):
         for i in range(0, self.nr_priorities):
-            if self.current_pos < self.slot_ranges[i]:
+            if self.current_pos < self.slots[i]:
                 return self._next_with_priority(i)
