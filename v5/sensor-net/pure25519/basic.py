@@ -66,7 +66,7 @@ def double_element(pt): # extended->extended
     Z3 = (F*G) % Q
     T3 = (E*H) % Q
     return (X3, Y3, Z3, T3)
-
+"""
 def add_elements(pt1, pt2): # extended->extended
     # add-2008-hwcd-3 . Slightly slower than add-2008-hwcd-4, but -3 is
     # unified, so it's safe for general-purpose addition
@@ -83,9 +83,42 @@ def add_elements(pt1, pt2): # extended->extended
     X3 = (E*F) % Q
     Y3 = (G*H) % Q
     T3 = (E*H) % Q
-    Z3 = (F*G) % Q
+    temp = F*G
+    temp2 = mod(temp, Q)
+    Z3 = temp2
+    return (X3, Y3, Z3, T3)
+"""
+def add_elements(pt1, pt2): # extended->extended
+    # add-2008-hwcd-3 . Slightly slower than add-2008-hwcd-4, but -3 is
+    # unified, so it's safe for general-purpose addition
+    (X1, Y1, Z1, T1) = pt1
+    (X2, Y2, Z2, T2) = pt2
+    A = (((Y1-X1)%Q)*((Y2-X2)%Q)) % Q
+    B = (((Y1+X1)%Q)*((Y2+X2)%Q)) % Q
+    C = T1*(2*d)*T2 % Q
+    D = Z1*2*Z2 % Q
+    E = (B-A) % Q
+    F = (D-C) % Q
+    G = (D+C) % Q
+    H = (B+A) % Q
+    X3 = (E*F) % Q
+    Y3 = (G*H) % Q
+    T3 = (E*H) % Q
+    Z3 = mod(F*G, Q)
     return (X3, Y3, Z3, T3)
 
+
+def mod(num, a):
+    num = str(num)
+    # Initialize result
+    res = 0
+ 
+    # One by one process all digits
+    # of 'num'
+    for i in range(0, len(num)):
+        res = (res * 10 + int(num[i])) % a
+ 
+    return res
 '''
 def scalarmult_element_safe_slow(pt, n):
     # this form is slightly slower, but tolerates arbitrary points, including

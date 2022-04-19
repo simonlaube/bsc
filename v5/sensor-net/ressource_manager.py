@@ -3,17 +3,8 @@ import hashlib
 import json
 import _thread
 from priority_queue import PriorityQueue
-from tinyssb import io, packet, repository, util
-
-def mk_verify_fct(secret):
-    def vfct(pk, s, msg):
-        try:
-            pure25519.VerifyingKey(pk).verify(s,msg)
-            return True
-        except Exception as e:
-            print(e)
-        return False
-    return vfct
+from tinyssb import io
+from microssb import packet, feed_manager, ssb_util
 
 class RessourceManager:
     
@@ -26,29 +17,32 @@ class RessourceManager:
         self.config = {}
         with open(path + 'config.json') as f:
             self.config = json.load(f)
-        for i in self.config: # hex to bytes
-            if i == 'child_feeds':
-                child_feeds = {}
-                for j, sk in self.config[i].items():
-                    child_feeds[util.fromhex(j)] = util.fromhex(sk)
-                self.config[i] = child_feeds
-            elif not i in ['alias', 'name']:
-                self.config[i] = util.fromhex(self.config[i])   
-        print(self.config)
+        # for i in self.config: # hex to bytes
+            # if i == 'child_feeds':
+            #     child_feeds = {}
+            #     for j, sk in self.config[i].items():
+            #         child_feeds[ssb_util.from_hex(j)] = ssb_util.from_hex(sk)
+            #     self.config[i] = child_feeds
+            # elif not i in ['alias', 'name']:
+            #     self.config[i] = ssb_util.from_hex(self.config[i])   
 
-        self.repo = repository.REPO(self.path, mk_verify_fct(self.config['secret']))
+        self.feed_mngr = feed_manager.FeedManager(self.path, self._get_key_dict())
         self.dmx_front_filters = {}
         self.dmx_want_filters = {}
         self.blob_filters = {}
-        self.out_queue = []
-        self.pri_queue = PriorityQueue(3) # queue with 3 priority classes
-        # self.user = {}
-        # self.peer_nodes = {}
+        self.in_queue = PriorityQueue(3) # queue with 3 priority classes
+        self.out_queue = PriorityQueue(3) # queue with 3 priority classes
         self.critical_feeds = self._get_critical_feeds()
         # TODO: maybe add medium critical category
         self._load_dmx_front_filters()
         self._load_dmx_want_filters()
         print('rm init ended')
+    
+    def _get_key_dict(self):
+        dict = self.config['child_feeds']
+        dict[self.config['feed_id']] = self.config['secret']
+        print(dict)
+        return dict
     
     def _get_critical_feeds(self):
         """Returns a list of feed_ids that are considered critical."""
@@ -65,37 +59,40 @@ class RessourceManager:
         if feed_id == self.config['feed_id']:
             # TODO: also return None if it is child feed of current feed
             return None
-        feed = self.repo.get_log(feed_id)
-        seq, prev_hash = feed.getfront()
+        feed = self.feed_mngr.get_feed(feed_id)
+        seq, prev_hash = feed.get_front()
         next_seq = (seq + 1).to_bytes(4, 'big')
-        pkt_dmx = packet._dmx(feed.fid + next_seq + prev_hash)
+        pkt_dmx = packet.dmx(feed.fid + next_seq + prev_hash)
         return pkt_dmx
     
     def _load_dmx_front_filters(self):
         """Adds the dmx bytes of expected packets to dmx-filter."""
         self.dmx_front_filters = {} # reset dictionary
-        for feed_id in self.repo.listlog():
-            dmx = self._get_front_dmx(feed_id)
+        for feed in self.feed_mngr._get_feeds():
+            dmx = self._get_front_dmx(feed.fid)
             if dmx:
-                self.dmx_front_filters[feed_id] = dmx
+                self.dmx_front_filters[feed.fid] = dmx
     
     def _load_dmx_want_filters(self):
         """Adds the dmx bytes of expected want requests to dmx-filter."""
         self.dmx_want_filters = {} # reset dictionary
-        for feed_id in self.repo.listlog():
-            self.dmx_want_filters[feed_id] = packet._dmx(feed_id + b'want')
+        for feed in self.feed_mngr._get_feeds():
+            # TODO: don't load child feed wants
+            if ssb_util.to_hex(feed.fid) == self.config['feed_id']:
+                continue
+            self.dmx_want_filters[feed.fid] = packet.dmx(feed.fid + b'want')
             print('want filters: ')
-            print(self.dmx_want_filters[feed_id])
+            print(self.dmx_want_filters[feed.fid])
     
                        
     def _pack_want(self, feed):
         """Returns for given feed a want packet 
         according to ssb protocol conventions.
         """
-        want_dmx = packet._dmx(feed.fid + b'want')
+        want_dmx = packet.dmx(feed.fid + b'want')
         seq = len(feed) + 1
         wire = want_dmx + feed.fid + seq.to_bytes(4, 'big')
-        return wire    
+        return wire
 
     def _want_broadcast(self):
         # TODO: implement some priority queue that prioritizes admin feeds
@@ -106,17 +103,16 @@ class RessourceManager:
         Adds want packets to priority queue. If feed is 'critical',
         it will have highest priority.
         """
-        for feed_id in self.repo.listlog():
-            if feed_id == self.config['feed_id']:
+        for feed in self.feed_mngr._get_feeds():
+            if feed.fid == self.config['feed_id']:
                 continue
-            feed = self.repo.get_log(feed_id)
-            if feed_id in self.critical_feeds:
-                self.pri_queue.append(0, (self._pack_want(feed), None))
+            if feed.fid in self.critical_feeds:
+                self.out_queue.append(0, (self._pack_want(feed), None))
             else:
-                self.pri_queue.append(2, (self._pack_want(feed), None))
+                self.out_queue.append(2, (self._pack_want(feed), None))
 
     def _handle_front_receive(self, buf, feed_id):
-        self.repo.get_log(feed_id).append(buf)
+        self.feed_mngr.get_feed(feed_id).verify_and_append_bytes(buf)
     
     def _handle_want_request(self, buf, neigh):
         buf = buf[7:]
@@ -124,9 +120,9 @@ class RessourceManager:
             feed_id = buf[:32]
             seq = int.from_bytes(buf[32:36], 'big')
             try:
-                feed = self.repo.get_log(feed_id)
+                feed = self.feed_mngr.get_feed(feed_id)
                 if feed:
-                    self.pri_queue.append(2, (feed[seq].wire, neigh.face))
+                    self.out_queue.append(2, (feed[seq].wire, neigh.face))
             except: 
                 print('something happened while getting feed from repo')
             buf = buf[36:]
@@ -161,15 +157,16 @@ class RessourceManager:
    
     def ressource_manager_loop(self):
         while True:
-            next = self.pri_queue.next()
-            if next:
-                (pkt, face) = next
+            next_out = self.out_queue.next()
+            if next_out:
+                (pkt, face) = next_out
                 if pkt != None:
                     if not face:
                         for f in self.faces:
                             f.enqueue(pkt)
                     else:
                         face.enqueue(pkt)
+            # TODO: check battery and decide
             time.sleep(2)
     
     def start(self):

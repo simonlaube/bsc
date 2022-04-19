@@ -40,10 +40,8 @@ class RessourceManager:
         self.dmx_front_filters = {}
         self.dmx_want_filters = {}
         self.blob_filters = {}
-        self.out_queue = []
-        self.pri_queue = PriorityQueue(3) # queue with 3 priority classes
-        # self.user = {}
-        # self.peer_nodes = {}
+        self.in_queue = PriorityQueue(3) # queue with 3 priority classes
+        self.out_queue = PriorityQueue(3) # queue with 3 priority classes
         self.critical_feeds = self._get_critical_feeds()
         # TODO: maybe add medium critical category
         self._load_dmx_front_filters()
@@ -111,9 +109,9 @@ class RessourceManager:
                 continue
             feed = self.repo.get_log(feed_id)
             if feed_id in self.critical_feeds:
-                self.pri_queue.append(0, (self._pack_want(feed), None))
+                self.out_queue.append(0, (self._pack_want(feed), None))
             else:
-                self.pri_queue.append(2, (self._pack_want(feed), None))
+                self.out_queue.append(2, (self._pack_want(feed), None))
 
     def _handle_front_receive(self, buf, feed_id):
         self.repo.get_log(feed_id).append(buf)
@@ -126,7 +124,7 @@ class RessourceManager:
             try:
                 feed = self.repo.get_log(feed_id)
                 if feed:
-                    self.pri_queue.append(2, (feed[seq].wire, neigh.face))
+                    self.out_queue.append(2, (feed[seq].wire, neigh.face))
             except: 
                 print('something happened while getting feed from repo')
             buf = buf[36:]
@@ -161,7 +159,7 @@ class RessourceManager:
    
     def ressource_manager_loop(self):
         while True:
-            next = self.pri_queue.next()
+            next_out = self.out_queue.next()
             if next:
                 (pkt, face) = next
                 if pkt != None:
@@ -170,6 +168,7 @@ class RessourceManager:
                             f.enqueue(pkt)
                     else:
                         face.enqueue(pkt)
+            # TODO: check battery and decide
             time.sleep(2)
     
     def start(self):
