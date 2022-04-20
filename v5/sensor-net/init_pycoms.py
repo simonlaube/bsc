@@ -1,8 +1,7 @@
 # --------------------------------------------------------------------------- #
-# This script creates / replaces the folder pycom on the desktop containing
-# an admin node and network node folder ready to be loaded on a lopy 4.
-# With the argument 'reset', both folders will be initialized.
-# With the argument 'add' a new node will be initialized.
+# This script initializes the folder 'pycom' on the desktop.
+# With the argument 'reset', the folder will be deleted and a new admin folder
+# created. With the argument 'add' a new node will be initialized and added.
 # --------------------------------------------------------------------------- #
  
 import os
@@ -72,10 +71,9 @@ def init_network_node():
     # TODO: Add node key to admin subfeed
 
 def init_admin_node():
-    name = 'admin'
 
     config = {
-        'name' : name,
+        'name' : 'admin',
         'feed_id' : pk_admin,
         'secret' : sk_admin,
         'admin' : pk_admin,
@@ -93,6 +91,8 @@ def main():
             return
         if sys.argv[1] == 'add':
             init_network_node()
+    else:
+        print('add \'reset\' to delete all nodes and create a new admin node or \'add\' to add a new network node')
 
 if __name__ == '__main__':
     main()
