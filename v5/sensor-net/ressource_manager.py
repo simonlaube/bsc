@@ -6,6 +6,9 @@ from priority_queue import PriorityQueue
 from tinyssb import io
 from microssb import packet, feed_manager, ssb_util
 
+def dmx(msg: bytes):
+    return hashlib.sha256(msg).digest()[:7]
+
 class RessourceManager:
     
     # TODO: add states for energy and storage availability
@@ -62,49 +65,67 @@ class RessourceManager:
         feed = self.feed_mngr.get_feed(feed_id)
         seq, prev_hash = feed.get_front()
         next_seq = (seq + 1).to_bytes(4, 'big')
-        pkt_dmx = packet.dmx(feed.fid + next_seq + prev_hash)
+        pkt_dmx = dmx(feed.fid + next_seq + prev_hash)
+        print('dmx 1')
+        print(pkt_dmx)
+        print('dmx 2')
+        print(feed.get_next_dmx())
         return pkt_dmx
     
     def _load_dmx_front_filters(self):
-        """Adds the dmx bytes of expected packets to dmx-filter."""
+        """
+        Adds the dmx bytes of expected packets to dmx-filter."""
         self.dmx_front_filters = {} # reset dictionary
-        for feed in self.feed_mngr._get_feeds():
-            dmx = self._get_front_dmx(feed.fid)
+        self.blob_filters = {} # reset dictionary
+        for feed in self.feed_mngr.feeds:
+            if ssb_util.to_hex(feed.fid) == self.config['feed_id']:
+                continue
+            if ssb_util.to_hex(feed.parent_id) == self.config['feed_id']:
+                continue
+            next_hash = feed.waiting_for_blob()
+            if next_hash:
+                print("waiting for blob")
+                self.blob_filters[ssb_util.to_hex(feed.fid)] = next_hash
+                continue # blob chain not yet complete, therefore no dmx request
+            dmx = feed.get_next_dmx()
+            print('front_filters: ')
+            print(dmx)
             if dmx:
                 self.dmx_front_filters[feed.fid] = dmx
     
     def _load_dmx_want_filters(self):
-        """Adds the dmx bytes of expected want requests to dmx-filter."""
+        """
+        Adds the dmx bytes of expected want requests to dmx-filter.
+        By default blocks of all feeds stored in node can be requested and therefore
+        for each feed a want dmx gets loaded into the filterbank.
+        """
         self.dmx_want_filters = {} # reset dictionary
-        for feed in self.feed_mngr._get_feeds():
-            # TODO: don't load child feed wants
-            if ssb_util.to_hex(feed.fid) == self.config['feed_id']:
-                continue
-            self.dmx_want_filters[feed.fid] = packet.dmx(feed.fid + b'want')
+        for feed in self.feed_mngr.feeds:
+            self.dmx_want_filters[ssb_util.to_hex(feed.fid)] = dmx(feed.fid + b'want')
             print('want filters: ')
-            print(self.dmx_want_filters[feed.fid])
+            print(self.dmx_want_filters[ssb_util.to_hex(feed.fid)])
     
                        
     def _pack_want(self, feed):
         """Returns for given feed a want packet 
         according to ssb protocol conventions.
         """
-        want_dmx = packet.dmx(feed.fid + b'want')
+        want_dmx = dmx(feed.fid + b'want')
         seq = len(feed) + 1
         wire = want_dmx + feed.fid + seq.to_bytes(4, 'big')
         return wire
 
     def _want_broadcast(self):
-        # TODO: implement some priority queue that prioritizes admin feeds
-        # TODO: don't broadcast want for own child feeds
         # TODO: implement want for feeds that are not yet in repo but in admin feed
         # or alternatively directly add feed when admin msg arrives
         """
-        Adds want packets to priority queue. If feed is 'critical',
-        it will have highest priority.
+        Adds want packets for feeds that are not owned by this node to priority queue.
+        If a feed is 'critical', it will have highest priority. 
         """
-        for feed in self.feed_mngr._get_feeds():
-            if feed.fid == self.config['feed_id']:
+        for feed in self.feed_mngr.feeds:
+            if ssb_util.to_hex(feed.fid) == self.config['feed_id']:
+                continue
+            if ssb_util.to_hex(feed.parent_id) == self.config['feed_id']:
                 continue
             if feed.fid in self.critical_feeds:
                 self.out_queue.append(0, (self._pack_want(feed), None))
@@ -112,22 +133,46 @@ class RessourceManager:
                 self.out_queue.append(2, (self._pack_want(feed), None))
 
     def _handle_front_receive(self, buf, feed_id):
-        self.feed_mngr.get_feed(feed_id).verify_and_append_bytes(buf)
+        feed = self.feed_mngr.get_feed(feed_id)
+        if feed == None:
+            print('error while trying to get feed')
+            return
+        if feed.verify_and_append_bytes(buf):
+            print('new packet was appended')
+            self.dmx_front_filters.pop(feed_id)
+            self.dmx_front_filters[feed_id] = feed.get_next_dmx()
+            # TODO: add new front dmx
+
     
     def _handle_want_request(self, buf, neigh):
+        """If requested feed and block or blob with requested seq is present, 
+        the packet will be appended to the out queue and sent when possible."""
         buf = buf[7:]
-        while len(buf) >= 36: # check for all want requests in pkt
-            feed_id = buf[:32]
-            seq = int.from_bytes(buf[32:36], 'big')
-            try:
-                feed = self.feed_mngr.get_feed(feed_id)
-                if feed:
-                    self.out_queue.append(2, (feed[seq].wire, neigh.face))
-            except: 
-                print('something happened while getting feed from repo')
-            buf = buf[36:]
+        assert len(buf) >= 36
+        feed_id = buf[:32]
+        seq = int.from_bytes(buf[32:36], 'big')
+
+        # check if it is a blob request
+        blob_seq = -1
+        if len(buf) == 40:
+            blob_seq = int.from_bytes(buf[36:40], 'big')
+        
+        # get wanted paket and append to out queue
+        feed = self.feed_mngr.get_feed(feed_id)
+        if feed == None:
+            print("Requested feed not found")
+            return
+        if seq > feed.front_seq:
+            print("Requested block with given seq not found")
+            return
+        if blob_seq == -1: # no block seq given -> return block
+            self.out_queue.append(2, (feed.get_wire(seq), neigh.face))
+            return
+        # TODO: if blob seq is found: append out
     
     def _handle_blob_receive(self, buf):
+        # TODO: check if blob complete. If yes -> add front dmx to filterbank
+        # TODO: if blob can be appended, change next_hash filter in filterbank
         pass
         
     def on_receive(self, buf, neigh):
@@ -161,6 +206,8 @@ class RessourceManager:
             if next_out:
                 (pkt, face) = next_out
                 if pkt != None:
+                    # print('send: ')
+                    # print(pkt)
                     if not face:
                         for f in self.faces:
                             f.enqueue(pkt)

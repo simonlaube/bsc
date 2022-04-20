@@ -68,22 +68,26 @@ for n in nodes.values():
     # create logs
     dict = { hex(n['feed_id']) : hex(n['secret']) }
     feed_mngr = feed_manager.FeedManager(pfx + '/', dict)
+
+    # create feed and admin anchor for not admin nodes
     if n['feed_id'] != n['admin']:
-        feed_mngr.create_feed(n['feed_id'])
-    
-    # install admin trust anchor
-    feed_mngr.create_feed(n['admin'])
-    # repo.allocate_log(pk_admin, 0, pk_admin[:20])
-    
-    # add three child feeds    
-    if n['feed_id'] == n['admin']:
+        feed_mngr.create_feed(n['feed_id'], n['secret'])
+        # install admin trust anchor
+        feed_mngr.create_feed(n['admin'])
+        
+    # create admin feed and three child nodes
+    else:
+        feed_mngr.create_feed(n['admin'], n['secret'])
         for i in range(0, 3):
             sk, _ = pure25519.create_keypair()
             sk, pk = sk.sk_s[:32], sk.vk_s
             # add new keys to feed manager
-            feed_mngr.keys[hex(pk)] = hex(sk)
+            # feed_mngr.keys[hex(pk)] = hex(sk)
             n['child_feeds'][hex(pk)] = hex(sk)
-            feed_mngr.create_child_feed(n['feed_id'], pk)
+            f = feed_mngr.create_child_feed(n['feed_id'], pk, sk)
+            print("here")
+            if f:
+                print("child feed created")
 
     
     # list values of node in config, if values are in bytes -> hexlify
