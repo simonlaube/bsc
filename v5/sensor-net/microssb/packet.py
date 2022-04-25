@@ -179,8 +179,6 @@ class Packet:
         self.mid = self._calc_mid()
         self.wire = self._get_wire()
 
-lock = _thread.allocate_lock()
-verify_result = False
 def pkt_from_bytes(fid: bytes,
                    seq: bytes,
                    prev_mid: bytes,
@@ -201,27 +199,14 @@ def pkt_from_bytes(fid: bytes,
 
     # create unsigned Packet
     pkt = Packet(fid, seq, prev_mid, payload, pkt_type=pkt_type)
-    _thread.start_new_thread(verify, (pkt._expand(), signature, fid))
     # let newly created thread aquire lock first (hacky method that works for now)
-    time.sleep(1)
-    global lock
-    global verify_result
-    with lock:
-        if not verify_result:
-            print("packet not trusted")
-            return None
+    if not verify_elliptic(pkt._expand(), signature, fid):
+        print("packet not trusted")
+        return None
     pkt.signature = signature
     pkt.mid = pkt._calc_mid()
     pkt.wire = pkt_wire
     return pkt
-
-def verify(expand, signed, fid):
-    global lock
-    global verify_result
-    lock.acquire()
-    verify_result = verify_elliptic(expand, signed, fid)
-    lock.release()
-
 
 def create_genesis_pkt(fid: bytes, payload: bytes, skey: bytes) -> Packet:
     """
