@@ -24,6 +24,10 @@ dest = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop/pycom/')
 def hex(b):
     return binascii.hexlify(b).decode()
 
+def from_hex(s):
+    return binascii.unhexlify(s.encode())
+    
+    
 def create_files(config, admin = False):
     pfx = dest + config['name'] + '/data'
     os.system(f"mkdir -p {pfx}/_blobs")
@@ -38,12 +42,14 @@ def create_files(config, admin = False):
         feed_mngr.create_feed(config['admin'])
 
     else:
-        feed_mngr.create_feed(pk_admin, sk_admin)
+        main_feed = feed_mngr.create_feed(pk_admin, sk_admin)
         for i in range(0, 3):
             sk, _ = pure25519.create_keypair()
             sk, pk = sk.sk_s[:32], sk.vk_s
             config['child_feeds'][hex(pk)] = hex(sk)
-            f = feed_mngr.create_child_feed(pk_admin, pk, sk)
+            f = feed_mngr.create_child_feed(config['feed_id'], pk, sk)
+            if f == None:
+                print('child feed could not be created...')
 
     config = { k : hex(v) if type(v) == bytes else v for k, v in config.items() }
     with open(f"{pfx}/config.json", "w") as f:
@@ -74,8 +80,8 @@ def init_admin_node():
 
     config = {
         'name' : 'admin',
-        'feed_id' : pk_admin,
-        'secret' : sk_admin,
+        'feed_id' : from_hex(pk_admin),
+        'secret' : from_hex(sk_admin),
         'admin' : pk_admin,
         'child_feeds' : {}
     }

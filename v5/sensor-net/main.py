@@ -2,7 +2,7 @@ from ressource_manager import RessourceManager
 from tinyssb import io
 
 def main():
-    faces = [io.LORA]
+    faces = [io.LORA()]
     rm = RessourceManager(faces, './data/')
     rm.start()
     print('rm started')

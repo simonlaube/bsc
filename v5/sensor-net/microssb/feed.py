@@ -207,7 +207,6 @@ class Feed:
         """
         seq = (self.front_seq + 1).to_bytes(4, "big")
         assert self.front_mid is not None, "front packet must be signed"
-
         pkt = pkt_from_bytes(self.fid, seq, self.front_mid, pkt_wire)
 
         if pkt is None:

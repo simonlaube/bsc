@@ -10,11 +10,10 @@ def dmx(msg: bytes):
     return hashlib.sha256(msg).digest()[:7]
 
 class RessourceManager:
-    
+
     # TODO: add states for energy and storage availability
 
     def __init__(self, faces, path):
-        print('rm init started')
         self.faces = faces
         self.path = path
         self.config = {}
@@ -27,7 +26,7 @@ class RessourceManager:
             #         child_feeds[ssb_util.from_hex(j)] = ssb_util.from_hex(sk)
             #     self.config[i] = child_feeds
             # elif not i in ['alias', 'name']:
-            #     self.config[i] = ssb_util.from_hex(self.config[i])   
+            #     self.config[i] = ssb_util.from_hex(self.config[i])
 
         self.feed_mngr = feed_manager.FeedManager(self.path, self._get_key_dict())
         self.dmx_front_filters = {}
@@ -39,14 +38,14 @@ class RessourceManager:
         # TODO: maybe add medium critical category
         self._load_dmx_front_filters()
         self._load_dmx_want_filters()
-        print('rm init ended')
-    
+        print('ressource manager initialized')
+
     def _get_key_dict(self):
         dict = self.config['child_feeds']
         dict[self.config['feed_id']] = self.config['secret']
         print(dict)
         return dict
-    
+
     def _get_critical_feeds(self):
         """Returns a list of feed_ids that are considered critical."""
         if self.config['feed_id'] == self.config['admin']:
@@ -55,7 +54,7 @@ class RessourceManager:
         critical_feed_ids.append(self.config['admin'])
         # TODO: add child feeds of admin
         return critical_feed_ids
-    
+
     def _get_front_dmx(self, feed_id):
         """Returns dmx of this feed with latest seq + 1. Returns None if given
         feed ID belongs to this repo."""
@@ -71,7 +70,7 @@ class RessourceManager:
         print('dmx 2')
         print(feed.get_next_dmx())
         return pkt_dmx
-    
+
     def _load_dmx_front_filters(self):
         """
         Adds the dmx bytes of expected packets to dmx-filter."""
@@ -92,7 +91,7 @@ class RessourceManager:
             print(dmx)
             if dmx:
                 self.dmx_front_filters[feed.fid] = dmx
-    
+
     def _load_dmx_want_filters(self):
         """
         Adds the dmx bytes of expected want requests to dmx-filter.
@@ -104,10 +103,10 @@ class RessourceManager:
             self.dmx_want_filters[ssb_util.to_hex(feed.fid)] = dmx(feed.fid + b'want')
             print('want filters: ')
             print(self.dmx_want_filters[ssb_util.to_hex(feed.fid)])
-    
-                       
+
+
     def _pack_want(self, feed):
-        """Returns for given feed a want packet 
+        """Returns for given feed a want packet
         according to ssb protocol conventions.
         """
         want_dmx = dmx(feed.fid + b'want')
@@ -120,7 +119,7 @@ class RessourceManager:
         # or alternatively directly add feed when admin msg arrives
         """
         Adds want packets for feeds that are not owned by this node to priority queue.
-        If a feed is 'critical', it will have highest priority. 
+        If a feed is 'critical', it will have highest priority.
         """
         for feed in self.feed_mngr.feeds:
             if ssb_util.to_hex(feed.fid) == self.config['feed_id']:
@@ -137,15 +136,15 @@ class RessourceManager:
         if feed == None:
             print('error while trying to get feed')
             return
-        if feed.verify_and_append_bytes(buf):
+        self.in_queue.append(1, (buf, feed))
+        """if feed.verify_and_append_bytes(buf):
             print('new packet was appended')
-            self.dmx_front_filters.pop(feed_id)
-            self.dmx_front_filters[feed_id] = feed.get_next_dmx()
+            self.dmx_front_filters[feed_id] = feed.get_next_dmx()"""
             # TODO: add new front dmx
 
-    
+
     def _handle_want_request(self, buf, neigh):
-        """If requested feed and block or blob with requested seq is present, 
+        """If requested feed and block or blob with requested seq is present,
         the packet will be appended to the out queue and sent when possible."""
         buf = buf[7:]
         assert len(buf) >= 36
@@ -156,7 +155,7 @@ class RessourceManager:
         blob_seq = -1
         if len(buf) == 40:
             blob_seq = int.from_bytes(buf[36:40], 'big')
-        
+
         # get wanted paket and append to out queue
         feed = self.feed_mngr.get_feed(feed_id)
         if feed == None:
@@ -169,12 +168,12 @@ class RessourceManager:
             self.out_queue.append(2, (feed.get_wire(seq), neigh.face))
             return
         # TODO: if blob seq is found: append out
-    
+
     def _handle_blob_receive(self, buf):
         # TODO: check if blob complete. If yes -> add front dmx to filterbank
         # TODO: if blob can be appended, change next_hash filter in filterbank
         pass
-        
+
     def on_receive(self, buf, neigh):
         """If incoming packet dmx / hash is in filters, this function handles the
         packets appropriately. If not, the packet gets discarded."""
@@ -185,7 +184,7 @@ class RessourceManager:
                 print('received front dmx: ' + str(dmx))
                 self._handle_front_receive(buf, k)
                 return
-           
+
         for k, v in self.dmx_want_filters.items():
             if v == dmx:
                 print('received want dmx: ' + str(dmx))
@@ -199,10 +198,16 @@ class RessourceManager:
         else:
             print('dmx not expected: ' + str(dmx))
         # print('neighbour: ' + str(neighbour))
-   
+
     def ressource_manager_loop(self):
         while True:
             next_out = self.out_queue.next()
+            next_in = self.in_queue.next()
+            if next_in:
+                (buf, feed) = next_in
+                if feed.verify_and_append_bytes(buf):
+                    print('new packet was appended')
+                    self.dmx_front_filters[feed.fid] = feed.get_next_dmx()
             if next_out:
                 (pkt, face) = next_out
                 if pkt != None:
@@ -215,13 +220,13 @@ class RessourceManager:
                         face.enqueue(pkt)
             # TODO: check battery and decide
             time.sleep(2)
-    
+
     def start(self):
         self.io_loop = io.IOLOOP(self.faces, self.on_receive)
         print('io loop created')
         _thread.start_new_thread(self.io_loop.run, tuple())
         _thread.start_new_thread(self.ressource_manager_loop, tuple())
-        
+
         # keep main thread alive
         while True:
             time.sleep(4)

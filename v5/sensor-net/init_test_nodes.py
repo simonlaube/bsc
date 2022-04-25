@@ -85,7 +85,6 @@ for n in nodes.values():
             # feed_mngr.keys[hex(pk)] = hex(sk)
             n['child_feeds'][hex(pk)] = hex(sk)
             f = feed_mngr.create_child_feed(n['feed_id'], pk, sk)
-            print("here")
             if f:
                 print("child feed created")
 

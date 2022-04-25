@@ -7,32 +7,35 @@ class PriorityQueue:
     def __init__(self, nr_priorities):
 
         # defines the number of different priority classes
-        self.nr_priorities = nr_priorities 
+        self.nr_priorities = nr_priorities
         self.queue = []
         self._init_priority_queues()
         self.slot_ranges = self._calculate_slots()
         self.nr_pos = self.slot_ranges[-1]
         self.current_pos = 0 # iterates over all slots
         self.size = 0
-    
+
     def _init_priority_queues(self):
         for i in range(0, self.nr_priorities):
             self.queue.append([])
-    
+
     def _calculate_slots(self):
         slots = []
         for i in range(0, self.nr_priorities):
             # exponential slot assignments.
-            slots.insert(0, int(pow(i + 1, 1.5))) 
+            slots.insert(0, int(pow(i + 1, 1.5)))
         for i in range(1, self.nr_priorities):
             slots[i] = slots[i] + slots[i - 1]
         return slots
-    
+
     def _next_pos(self):
         self.current_pos = (self.current_pos + 1) % self.nr_pos
-    
+
     def append(self, priority, pkt):
-        # TODO: check for duplicates
+        # TODO: check for duplicates with hashtable...?
+        if pkt in self.queue[priority]:
+            print("packet dropped - already in queue")
+            return
         if priority < 0 or priority > self.nr_priorities - 1:
             print('the given priority is out of range: it is now adjusted to the closest valid priority.')
         if priority <= 0:
@@ -42,7 +45,7 @@ class PriorityQueue:
         else:
             self.queue[priority].append(pkt)
         self.size += 1
-    
+
     def _next_with_priority(self, priority):
         """Gets first packet in priority class. If class is empty, go to next class until pkt found.
         If no packet in priority queue, return None."""
@@ -58,7 +61,7 @@ class PriorityQueue:
         self.size -= 1
         self._next_pos()
         return self.queue[priority].pop(0)
-            
+
     def next(self):
         for i in range(0, self.nr_priorities):
             if self.current_pos < self.slot_ranges[i]:
