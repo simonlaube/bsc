@@ -3,8 +3,6 @@ import sys
 from .crypto import sign_elliptic
 from .crypto import verify_elliptic
 from .ssb_util import to_var_int
-import _thread
-import time
 
 # non-micropython import
 if sys.implementation.name != "micropython":
@@ -25,7 +23,8 @@ class PacketType:
     iscontn = bytes([0x03])  # metafeed information, only in genesis block
     mkchild = bytes([0x04])  # metafeed information
     contdas = bytes([0x05])  # metafeed information
-    types = [plain48, chain20, ischild, iscontn, mkchild, contdas]
+    acknldg = bytes([0x06])  # proof of having some fid:seq:sig entry
+    types = [plain48, chain20, ischild, iscontn, mkchild, contdas, acknldg]
 
     @classmethod
     def is_type(cls, t: bytes) -> bool:
@@ -81,8 +80,7 @@ class Packet:
         assert len(payload) == 48, "payload must be 48B"
 
         # build packet
-        # self.block_name = self.prefix + fid + seq + prev_mid
-        self.block_name = fid + seq + prev_mid
+        self.block_name = self.prefix + fid + seq + prev_mid
         self.fid = fid
         self.seq = seq
         self.prev_mid = prev_mid
@@ -126,8 +124,8 @@ class Packet:
         assert self.mid is not None, "sign packet first"
 
         next_seq = int.from_bytes(self.seq, "big") + 1
-        next = self.fid + next_seq.to_bytes(4, "big") + self.mid
-        return hashlib.sha256(next).digest()[:20]
+        next = self.prefix + self.fid + next_seq.to_bytes(4, "big") + self.mid
+        return hashlib.sha256(next).digest()[:7]
 
     def _expand(self) -> bytes:
         """
@@ -179,6 +177,7 @@ class Packet:
         self.mid = self._calc_mid()
         self.wire = self._get_wire()
 
+
 def pkt_from_bytes(fid: bytes,
                    seq: bytes,
                    prev_mid: bytes,
@@ -199,14 +198,19 @@ def pkt_from_bytes(fid: bytes,
 
     # create unsigned Packet
     pkt = Packet(fid, seq, prev_mid, payload, pkt_type=pkt_type)
-    # let newly created thread aquire lock first (hacky method that works for now)
-    if not verify_elliptic(pkt._expand(), signature, fid):
+
+    # use fid as verification key
+    if verify_elliptic(pkt._expand(), signature, fid):
+        # verification successful
+        # fill-in signature and calculate missing info
+        pkt.signature = signature
+        pkt.mid = pkt._calc_mid()
+        pkt.wire = pkt_wire
+        return pkt
+    else:
         print("packet not trusted")
         return None
-    pkt.signature = signature
-    pkt.mid = pkt._calc_mid()
-    pkt.wire = pkt_wire
-    return pkt
+
 
 def create_genesis_pkt(fid: bytes, payload: bytes, skey: bytes) -> Packet:
     """

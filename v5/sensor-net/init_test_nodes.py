@@ -87,8 +87,9 @@ for n in nodes.values():
             f = feed_mngr.create_child_feed(n['feed_id'], pk, sk)
             if f:
                 print("child feed created")
+        feed = feed_mngr.get_feed(n['feed_id'])
+        feed.append_blob(bytes(500))
 
-    
     # list values of node in config, if values are in bytes -> hexlify
     config = {k : hex(v) if type(v) == bytes else v for k, v in n.items() }
     with open(f"{pfx}/config.json", "w") as f:
