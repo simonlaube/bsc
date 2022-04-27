@@ -58,11 +58,23 @@ class PriorityQueue:
         while not self.queue[priority] and i < self.nr_priorities:
             priority = (priority + 1) % self.nr_priorities
             i += 1
-        self.size -= 1
         self._next_pos()
-        return self.queue[priority].pop(0)
+        # return copy of element (without deleting entry in priority queue)
+        return (priority, self.queue[priority][0])
 
     def next(self):
         for i in range(0, self.nr_priorities):
             if self.current_pos < self.slot_ranges[i]:
                 return self._next_with_priority(i)
+    
+    def remove(self, priority, pkt):
+        self.size -= 1
+        self.queue[priority].remove(pkt)
+
+    def pop_next(self):
+        next = self.next()
+        if not next:
+            return None
+        priority, pkt = next
+        self.remove(priority, pkt)
+        return pkt

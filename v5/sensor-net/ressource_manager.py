@@ -3,8 +3,8 @@ import hashlib
 import json
 import _thread
 from priority_queue import PriorityQueue
-from tinyssb import io
-from microssb import packet, feed_manager, ssb_util
+# from tinyssb import io
+from microssb import packet, feed_manager, ssb_util, io
 
 def dmx(msg: bytes):
     return hashlib.sha256(msg).digest()[:7]
@@ -233,16 +233,19 @@ class RessourceManager:
 
             next_in = self.in_queue.next()
             if next_in:
-                (buf, feed) = next_in
+                priority, (buf, feed) = next_in
                 if feed.verify_and_append_bytes(buf):
                     print('new packet was appended: ' + str(feed.get_next_dmx()))
+                    # only remove pkt from priority queue after verify
+                    self.in_queue.remove(priority, (buf, feed))
                     self.in_queue_lock.acquire()
                     self._update_dmx_front(feed)
                     self.in_queue_lock.release()
 
-            next_out = self.out_queue.next()
-            if next_out:
-                (pkt, face) = next_out
+            next_out = self.out_queue.pop_next()
+            # print(next_out)
+            if next_out != None:
+                pkt, face = next_out
                 if pkt != None:
                     # print('send: ')
                     # print(pkt)
