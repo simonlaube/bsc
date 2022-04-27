@@ -259,7 +259,8 @@ class Feed:
                 f = open(file_name, "wb")
                 f.write(blob.wire)
                 f.close()
-            except Exception:
+            except Exception as e:
+                print(e)
                 return False
         return True
 

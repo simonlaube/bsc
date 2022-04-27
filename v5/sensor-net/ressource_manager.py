@@ -19,21 +19,15 @@ class RessourceManager:
         self.config = {}
         with open(path + 'config.json') as f:
             self.config = json.load(f)
-        # for i in self.config: # hex to bytes
-            # if i == 'child_feeds':
-            #     child_feeds = {}
-            #     for j, sk in self.config[i].items():
-            #         child_feeds[ssb_util.from_hex(j)] = ssb_util.from_hex(sk)
-            #     self.config[i] = child_feeds
-            # elif not i in ['alias', 'name']:
-            #     self.config[i] = ssb_util.from_hex(self.config[i])
 
         self.feed_mngr = feed_manager.FeedManager(self.path, self._get_key_dict())
         self.dmx_front_filters = {}
         self.dmx_want_filters = {}
         self.blob_filters = {}
         self.in_queue = PriorityQueue(3) # queue with 3 priority classes
+        self.in_blob_queue = []
         self.out_queue = PriorityQueue(3) # queue with 3 priority classes
+        self.in_queue_lock  = _thread.allocate_lock()
         self.critical_feeds = self._get_critical_feeds()
         # TODO: maybe add medium critical category
         self._load_dmx_front_filters()
@@ -55,19 +49,27 @@ class RessourceManager:
         return critical_feed_ids
     
     def _update_dmx_front(self, feed):
-        # check if front is blob. If so, get add blob pointer to front_filter
+        """If the given feed has not yet all blobs of newest blob chain,
+        the hash pointer to the next blob gets added to filter.
+        If the feed has not yet ended, the expected dmx of the next packet
+        gets added to the filter.
+        Else, the dmx filter of this feed gets set to \'None\'
+        """
+        # check if front is blob. If so, add blob pointer to front_filter
         # TODO: If we want to handle blobs seperately, append to seperate filterbank
         next_blob_ptr = feed.waiting_for_blob()
-        print('dmx front:')
         if next_blob_ptr:
             self.dmx_front_filters[ssb_util.to_hex(feed.fid)] = next_blob_ptr
-            print(next_blob_ptr)
             return
+        
+        if feed.has_ended():
+            print('feed has already ended')
+            self.dmx_front_filters[ssb_util.to_hex(feed.fid)] = None
+
 
         dmx = feed.get_next_dmx()
         if dmx:
             self.dmx_front_filters[ssb_util.to_hex(feed.fid)] = dmx
-            print(dmx)
             return
         print('could not update dmx front for ' + str(ssb_util.to_hex(feed.fid)))
         
@@ -82,7 +84,9 @@ class RessourceManager:
                 continue
             if ssb_util.to_hex(feed.parent_id) == self.config['feed_id']:
                 continue
+            self.in_queue_lock.acquire()
             self._update_dmx_front(feed)
+            self.in_queue_lock.release()
 
     def _load_dmx_want_filters(self):
         """
@@ -93,9 +97,6 @@ class RessourceManager:
         self.dmx_want_filters = {} # reset dictionary
         for feed in self.feed_mngr.feeds:
             self.dmx_want_filters[ssb_util.to_hex(feed.fid)] = dmx(feed.fid + b'want')
-            print('want filters: ')
-            print(self.dmx_want_filters[ssb_util.to_hex(feed.fid)])
-
 
     def _pack_want(self, feed):
         """Returns for given feed a want packet
@@ -104,7 +105,7 @@ class RessourceManager:
         want_dmx = dmx(feed.fid + b'want')
         seq = len(feed) + 1
         hash_pointer = feed.waiting_for_blob()
-        # next packet has to be blob -> append ptr to want request
+        # if next packet has to be blob -> append ptr to want request
         if hash_pointer:
             # we only want to check until current seq and not the next
             wire = want_dmx + feed.fid + (seq - 1).to_bytes(4, 'big') + hash_pointer
@@ -142,10 +143,13 @@ class RessourceManager:
 
     def _handle_blob_receive(self, buf, feed_id):
         """Blobs are written directly and not first appended to in queue."""
+        # TODO: don't get feed from argument (not necessary)
         feed = self.feed_mngr.get_feed(feed_id)
         if feed.verify_and_append_blob(buf):
+            print('blob was appended')
             self._update_dmx_front(feed)
-
+            return
+        print('blob was not appended')
 
     def _handle_want_request(self, buf, neigh):
         """If requested feed and block or blob with requested seq is present,
@@ -187,38 +191,56 @@ class RessourceManager:
         packets appropriately. If not, the packet gets discarded."""
         # TODO: proper uncloaking
         dmx = buf[:7]
+        self.in_queue_lock.acquire()
         for k, v in self.dmx_front_filters.items():
             if v == dmx:
                 print('received front dmx: ' + str(dmx))
                 self._handle_front_receive(buf, k)
+                self.in_queue_lock.release()
                 return
 
         for k, v in self.dmx_want_filters.items():
             if v == dmx:
                 print('received want dmx: ' + str(dmx))
                 self._handle_want_request(buf, neigh)
+                self.in_queue_lock.release()
                 return
 
         # check if incoming pkt is blob (automatically verified with hash)
         hash_ptr = hashlib.sha256(buf).digest()[:20]
-        print(hash_ptr)
         # if blobs and dmx handled separately, change filter bank here
-        if hash_ptr in self.dmx_front_filters.values():
-            print('received expected blob')
-            self._handle_blob_receive(buf, k)
-        else:
-            print('dmx not expected: ' + str(dmx))
+        for k, v in self.dmx_front_filters.items():
+            if v == hash_ptr:
+                print('received expected blob')
+                self._handle_blob_receive(buf, k)
+                
+        # if hash_ptr in self.dmx_front_filters.values():
+        #     print('received expected blob')
+        #     # self.in_blob_queue.append((buf, k))
+        #     self._handle_blob_receive(buf, k)
+        # else:
+        print('dmx not expected: ' + str(dmx))
+        self.in_queue_lock.release()
         # print('neighbour: ' + str(neighbour))
 
     def ressource_manager_loop(self):
+        # TODO: handle out / in queues individually for a given amount of time
+        # TODO: Log time spent for different queues for optimizing
         while True:
-            next_out = self.out_queue.next()
+            # if len(self.in_blob_queue) > 0:
+            #     blob_buf, blob_k = self.in_blob_queue.pop(0)
+            #     self._handle_blob_receive(blob_buf, blob_k)
+
             next_in = self.in_queue.next()
             if next_in:
                 (buf, feed) = next_in
                 if feed.verify_and_append_bytes(buf):
-                    print('new packet was appended')
+                    print('new packet was appended: ' + str(feed.get_next_dmx()))
+                    self.in_queue_lock.acquire()
                     self._update_dmx_front(feed)
+                    self.in_queue_lock.release()
+
+            next_out = self.out_queue.next()
             if next_out:
                 (pkt, face) = next_out
                 if pkt != None:
@@ -230,7 +252,7 @@ class RessourceManager:
                     else:
                         face.enqueue(pkt)
             # TODO: check battery and decide
-            time.sleep(2)
+            time.sleep(0.5)
 
     def start(self):
         self.io_loop = io.IOLOOP(self.faces, self.on_receive)
@@ -240,7 +262,7 @@ class RessourceManager:
 
         # keep main thread alive
         while True:
-            time.sleep(4)
+            time.sleep(1)
             self._want_broadcast()
             # for feed_id in self.repo.listlog():
             #     if feed_id == self.config['feedID']:
