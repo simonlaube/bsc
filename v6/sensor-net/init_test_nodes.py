@@ -78,13 +78,31 @@ for c in configs.values():
         print(c['feed_id'])
         print(ssb_util.to_hex(f.fid))
 
+        ct = None
         for i in range(0, 3):
 
             # f = feed_mngr.create_subtree_root_feed(n['feed_id'], pk, sk, packet.PacketType.mk_continuous_tree)
             sk, pk, ct = feed_forest.create_continuous_tree(c['feed_id'], feed_mngr, c)
+        if ct:
+            print("subtree root feed created")
+        ct.append_bytes(b'hello')
+        if ct.fork_at(0, feed_mngr, c):
+            print(ct)
+        if ct.fork_at(0, feed_mngr, c):
+            print('fork creation successful')
+            print(ct)
+        if ct.fork_at(0, feed_mngr, c):
+            print('fork creation successful')
+            print(ct)
+        if ct.fork_at(0, feed_mngr, c):
+            print('fork creation successful')
+            print(ct)
+        if ct.fork_at(0, feed_mngr, c):
+            print('fork creation successful')
+            print(ct)
+        else:
+            print('could not fork')
 
-            if ct:
-                print("subtree root feed created")
 
         # feed = feed_mngr.get_feed(n['feed_id'])
         # feed.append_blob(bytes(500))

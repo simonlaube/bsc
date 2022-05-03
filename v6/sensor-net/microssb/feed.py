@@ -41,6 +41,38 @@ class Feed:
         self.front_seq = int.from_bytes(header[104:108], "big")
         self.front_mid = header[108:128]
 
+    def __str__(self) -> str:
+        title = to_hex(self.fid[:8]) + "..." # only first 8B
+        length = self.front_seq - self.anchor_seq
+        seperator = ("+-----" * (length + 1)) + "+"
+        numbers = "   {}  ".format(self.anchor_seq)
+        feed = "| HDR |"
+
+        for i in range(self.anchor_seq + 1, self.front_seq + 1):
+            numbers += "   {}  ".format(i)
+            pkt_type = self.get_type(i)
+
+            if pkt_type == PacketType.plain48:
+                feed += " P48 |"
+            if pkt_type == PacketType.chain20:
+                feed += " C20 |"
+            if pkt_type == PacketType.ischild:
+                feed += " ICH |"
+            if pkt_type == PacketType.iscontn:
+                feed += " ICN |"
+            if pkt_type == PacketType.mkchild:
+                feed += " MKC |"
+            if pkt_type == PacketType.contdas:
+                feed += " CTD |"
+            if pkt_type == PacketType.mk_continuous_tree:
+                feed += " TCO |"
+            if pkt_type == PacketType.mk_session_tree:
+                feed += " TSE |"
+            if pkt_type == PacketType.fork:
+                feed += " FRK |"
+
+        return "\n".join([title, numbers, seperator, feed, seperator])
+
     def __len__(self) -> int:
         return self.front_seq
 

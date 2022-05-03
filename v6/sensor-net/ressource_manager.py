@@ -98,7 +98,6 @@ class RessourceManager:
         self.dmx_want_filters = {} # reset dictionary
         for feed in self.feed_mngr.feeds:
             self.dmx_want_filters[ssb_util.to_hex(feed.fid)] = dmx(feed.fid + b'want')
-        print(self.dmx_want_filters)
 
     def _pack_want(self, feed):
         """Returns for given feed a want packet

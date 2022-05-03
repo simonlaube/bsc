@@ -26,7 +26,8 @@ class PacketType:
     mk_session_tree = bytes([0x05]) # metafeed information
     contdas = bytes([0x07])  # metafeed information
     acknldg = bytes([0x08])  # proof of having some fid:seq:sig entry
-    types = [plain48, chain20, ischild, iscontn, mkchild, mk_continuous_tree, mk_session_tree, contdas, acknldg]
+    fork = bytes([0x09])
+    types = [plain48, chain20, ischild, iscontn, mkchild, mk_continuous_tree, mk_session_tree, contdas, acknldg, fork]
 
     @classmethod
     def is_type(cls, t: bytes) -> bool:
@@ -262,6 +263,21 @@ def create_tree_pkt(fid: bytes,
     return Packet(fid, seq, prev_mid, payload=child_fid,
                   pkt_type=pkt_type, skey=skey)
 
+def create_fork_pkt(fid: bytes,
+                    seq: bytes,
+                    prev_mid: bytes,
+                    fork_pos: bytes,
+                    skey: bytes) -> Packet:
+    """
+    Creates a fork packet that indicates which past pos should be made the
+    current front state again. This packed should be appended to a newly
+    created feed and reference the relative pos of a continuous tree structure.
+    (not the seq of a feed)
+    """
+    return Packet(fid, seq, prev_mid, payload=fork_pos,
+                  pkt_type=PacketType.fork, skey=skey)
+
+
 
 def create_child_pkt(fid: bytes, payload: bytes, skey: bytes) -> Packet:
     """
@@ -272,7 +288,6 @@ def create_child_pkt(fid: bytes, payload: bytes, skey: bytes) -> Packet:
     prev_mid = fid[:20]
     return Packet(fid, seq, prev_mid, payload,
                   pkt_type=PacketType.ischild, skey=skey)
-
 
 def create_end_pkt(fid: bytes,
                    seq: bytes,
