@@ -86,24 +86,22 @@ for c in configs.values():
         ct.append_bytes(b'hello')
         ct.append_bytes(b'hello')
         if ct.fork_at(3, feed_mngr, c):
-            print(ct)
+            pass
         if ct.fork_at(2, feed_mngr, c):
             print('fork creation successful')
-            print(ct)
         if ct.fork_at(1, feed_mngr, c):
             print('fork creation successful')
-            print(ct)
         if ct.fork_at(3, feed_mngr, c):
             print('fork creation successful')
-            print(ct)
         ct.append_bytes(b'lksdjf')
         ct.append_bytes(b'lksdjf')
         if ct.fork_at(2, feed_mngr, c):
             print('fork creation successful')
-            print(ct)
         else:
             print('could not fork')
+        ct.fork_at(0, feed_mngr, c)
 
+        print(ct)
 
         # feed = feed_mngr.get_feed(n['feed_id'])
         # feed.append_blob(bytes(500))

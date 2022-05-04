@@ -41,7 +41,7 @@ class ContinuousTree:
 
         # this is the relative front pos of the tree object
         # not to be confused with the front seq of a feed
-        self.front_pos = 0 
+        self.front_pos = -1
         self.load(feed_mngr, config)
     
     def __str__(self):
@@ -53,24 +53,21 @@ class ContinuousTree:
         return string
     
     def _get_abs_pos(self, pos, feed_mngr):
+        print('front_pos: ' + str(self.front_pos))
         curr_pos = self.front_pos
-        print('before: ' + str(curr_pos))
         if pos > curr_pos:
             print('couldn\'t retrieve abs pos: position is larger than newest position')
             return None
         curr_feed = self.feeds[-2]
         curr_seq = len(curr_feed)
         while curr_feed != self.feeds[0]:
-            print('here')
-            print(curr_pos)
             pkts_in_feed = curr_seq - 3
-            print(pkts_in_feed)
             if curr_pos - pkts_in_feed < pos: # packet is in current feed
                 return (curr_feed.fid, curr_seq - (curr_pos - pos))
             curr_pos -= pkts_in_feed
             curr_seq = int.from_bytes(curr_feed.get(3)[0:4], 'big')
             curr_feed = feed_mngr.get_feed(curr_feed.get(3)[4:36])
-        return (curr_feed.fid, pos + 3)
+        return (curr_feed.fid, pos + 4)
         if curr_pos <= 0:
             print('Something went wrong calculating abs position')    
 
@@ -103,7 +100,7 @@ class ContinuousTree:
         curr_feed = self.feeds[-2]
         curr_seq = len(self.feeds[-2])
         while curr_feed != self.feeds[0]:
-            self.front_pos += (curr_seq - 3)
+            self.front_pos += (curr_seq - 4)
             curr_seq = int.from_bytes(curr_feed.get(3)[0:4], 'big')
             curr_feed = feed_mngr.get_feed(curr_feed.get(3)[4:36])
         print('loaded continuos tree')
@@ -138,7 +135,6 @@ class ContinuousTree:
         fork_feed.append_pkt(fork_pkt)
         self.feeds.append(next_emergency_feed) # update feed list
         self.front_pos = pos
-        print('after ' + str(self.front_pos))
         return True
 
 
