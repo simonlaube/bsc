@@ -266,7 +266,8 @@ def create_tree_pkt(fid: bytes,
 def create_fork_pkt(fid: bytes,
                     seq: bytes,
                     prev_mid: bytes,
-                    fork_pos: bytes,
+                    fork_seq: bytes,
+                    forked_fid: bytes,
                     skey: bytes) -> Packet:
     """
     Creates a fork packet that indicates which past pos should be made the
@@ -274,7 +275,7 @@ def create_fork_pkt(fid: bytes,
     created feed and reference the relative pos of a continuous tree structure.
     (not the seq of a feed)
     """
-    return Packet(fid, seq, prev_mid, payload=fork_pos,
+    return Packet(fid, seq, prev_mid, payload=fork_seq+forked_fid,
                   pkt_type=PacketType.fork, skey=skey)
 
 

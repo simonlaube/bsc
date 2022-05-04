@@ -52,8 +52,27 @@ class ContinuousTree:
             string += f.__str__() + '\n\n'
         return string
     
-    def _create_first_fork_pkt(self):
-        pass
+    def _get_abs_pos(self, pos, feed_mngr):
+        curr_pos = self.front_pos
+        print('before: ' + str(curr_pos))
+        if pos > curr_pos:
+            print('couldn\'t retrieve abs pos: position is larger than newest position')
+            return None
+        curr_feed = self.feeds[-2]
+        curr_seq = len(curr_feed)
+        while curr_feed != self.feeds[0]:
+            print('here')
+            print(curr_pos)
+            pkts_in_feed = curr_seq - 3
+            print(pkts_in_feed)
+            if curr_pos - pkts_in_feed < pos: # packet is in current feed
+                return (curr_feed.fid, curr_seq - (curr_pos - pos))
+            curr_pos -= pkts_in_feed
+            curr_seq = int.from_bytes(curr_feed.get(3)[0:4], 'big')
+            curr_feed = feed_mngr.get_feed(curr_feed.get(3)[4:36])
+        return (curr_feed.fid, pos + 3)
+        if curr_pos <= 0:
+            print('Something went wrong calculating abs position')    
 
     def load(self, feed_mngr, config):
         next_feed = feed_mngr.get_feed(self.root_fid)
@@ -71,26 +90,22 @@ class ContinuousTree:
             if f.get_type(3) != packet.PacketType.fork:
                 print('continuous tree: this packet should be a fork')
                 continue
-            pos = int.from_bytes(f.get(3)[8:12], 'big')
-            self.fork_pos.insert(0, pos)
+            pos = int.from_bytes(f.get(3)[0:4], 'big')
     
         if len(self.feeds[-2]) < 3: # the first fork packet not yet created
             seq, prev_mid = self.feeds[-2].get_front()
-            # sk = config['child_feeds'][ssb_util.to_hex(self.feeds[-2].fid)]
-            # fork_pkt = packet.create_fork_pkt(self.feeds[-2].fid,
-            #                                   (seq + 1).to_bytes(4, 'big'),
-            #                                   prev_mid,
-            #                                   (0).to_bytes(4, 'big'),
-            #                                   ssb_util.from_hex(sk))
 
             # TODO: dummy packet, maybe change to something more useful later
             self.feeds[-2].append_bytes(b'') 
             # self.fork_pos.insert(0, 0) # update fork pos list
         
-        fork_pos = int.from_bytes(self.feeds[-2].get(3)[8:12], 'big')
-        size_last_feed = self.feeds[-2].front_seq - 3 # subtract ischild, mkchild, fork
-        self.front_pos = fork_pos + size_last_feed
-        print(self.front_pos)
+        # get number of packets by walking backwards via the fork pointers
+        curr_feed = self.feeds[-2]
+        curr_seq = len(self.feeds[-2])
+        while curr_feed != self.feeds[0]:
+            self.front_pos += (curr_seq - 3)
+            curr_seq = int.from_bytes(curr_feed.get(3)[0:4], 'big')
+            curr_feed = feed_mngr.get_feed(curr_feed.get(3)[4:36])
         print('loaded continuos tree')
         # TODO: Later maybe load from cache file if available
         
@@ -103,10 +118,11 @@ class ContinuousTree:
 
     def fork_at(self, pos, feed_mngr, config) -> bool:
         # TODO: create new feed and append fork packet in now second last feed
-        print(self.front_pos)
         if pos < 0 or pos >= self.front_pos:
+            print('could not fork (front_pos: ' + str(self.front_pos) + ' given pos: ' + str(pos) + ')')
             return False
-        # TODO: update self.front_pos
+        # TODO: give dmx + want filter bank and update when fork created
+        forked_fid, forked_seq = self._get_abs_pos(pos, feed_mngr)
         fork_fid = self.feeds[-1].fid
         fork_feed = feed_mngr.get_feed(fork_fid)
         next_emergency_feed = prepare_fork_feed(fork_fid, feed_mngr, config)
@@ -116,20 +132,24 @@ class ContinuousTree:
         fork_pkt = packet.create_fork_pkt(fork_fid,
                                           (seq + 1).to_bytes(4, 'big'),
                                           prev_mid,
-                                          pos.to_bytes(4, 'big'),
+                                          forked_seq.to_bytes(4, 'big'),
+                                          forked_fid,
                                           sk)
         fork_feed.append_pkt(fork_pkt)
-        self.fork_pos.append(pos) # update fork pos list
         self.feeds.append(next_emergency_feed) # update feed list
+        self.front_pos = pos
+        print('after ' + str(self.front_pos))
         return True
 
 
 def prepare_fork_feed(feed_id, feed_mngr, config):
+    # TODO: give dmx + want filter bank and update when fork created
     sk, pk = config.new_child_keypair(as_bytes=True)
     f = feed_mngr.create_child_feed(feed_id, pk, sk) 
     return f
 
 def create_continuous_tree(feed_id, feed_mngr, config):
+    # TODO: give dmx + want filter bank and update when fork created
     """Creates a mk_continuous_tree packet to given feed, creates a
     subtree-root-feed and returns secret key, public key as well as a 
     newly created ContinuousTree object."""

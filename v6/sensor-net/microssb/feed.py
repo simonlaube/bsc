@@ -69,7 +69,9 @@ class Feed:
             if pkt_type == PacketType.mk_session_tree:
                 feed += " TSE |"
             if pkt_type == PacketType.fork:
-                feed += " FRK |"
+                ptr = to_hex(self.get(i)[4:36][:1])
+                pos = int.from_bytes(self.get(i)[0:4], 'big')
+                feed += " " + ptr + "@" + str(pos) + "|"
 
         return "\n".join([title, numbers, seperator, feed, seperator])
 

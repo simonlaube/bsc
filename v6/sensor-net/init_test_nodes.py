@@ -69,14 +69,11 @@ for c in configs.values():
     if c['feed_id'] != c['admin']:
         feed_mngr.create_feed(c['feed_id'], c['secret'])
         # install admin trust anchor
-        print(c['admin'])
         feed_mngr.create_feed(c['admin'])
         
     # create admin feed and three child nodes (subtrees)
     else:
         f = feed_mngr.create_feed(c['feed_id'], c['secret'])
-        print(c['feed_id'])
-        print(ssb_util.to_hex(f.fid))
 
         ct = None
         for i in range(0, 3):
@@ -86,18 +83,22 @@ for c in configs.values():
         if ct:
             print("subtree root feed created")
         ct.append_bytes(b'hello')
-        if ct.fork_at(0, feed_mngr, c):
+        ct.append_bytes(b'hello')
+        ct.append_bytes(b'hello')
+        if ct.fork_at(3, feed_mngr, c):
             print(ct)
-        if ct.fork_at(0, feed_mngr, c):
+        if ct.fork_at(2, feed_mngr, c):
             print('fork creation successful')
             print(ct)
-        if ct.fork_at(0, feed_mngr, c):
+        if ct.fork_at(1, feed_mngr, c):
             print('fork creation successful')
             print(ct)
-        if ct.fork_at(0, feed_mngr, c):
+        if ct.fork_at(3, feed_mngr, c):
             print('fork creation successful')
             print(ct)
-        if ct.fork_at(0, feed_mngr, c):
+        ct.append_bytes(b'lksdjf')
+        ct.append_bytes(b'lksdjf')
+        if ct.fork_at(2, feed_mngr, c):
             print('fork creation successful')
             print(ct)
         else:
