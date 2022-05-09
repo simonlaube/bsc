@@ -58,6 +58,7 @@ for nm in ['NodeA', 'NodeB', 'NodeC']:
 # create config and log files for admin and all other nodes
 for c in configs.values():
     pfx = './data/' + c['name']
+    print(pfx)
     os.system(f"mkdir -p {pfx}/_blobs")
     os.system(f"mkdir -p {pfx}/_feeds")
 
@@ -79,7 +80,7 @@ for c in configs.values():
         for i in range(0, 3):
 
             # f = feed_mngr.create_subtree_root_feed(n['feed_id'], pk, sk, packet.PacketType.mk_continuous_tree)
-            sk, pk, ct = feed_forest.create_continuous_tree(c['feed_id'], feed_mngr, c)
+            sk, pk, ct = feed_forest.create_continuous_tree(c['feed_id'], feed_mngr, {}, {}, c)
         if ct:
             print("subtree root feed created")
         ct.append_bytes(b'hello')

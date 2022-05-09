@@ -4,6 +4,7 @@ import json
 import _thread
 import config
 from priority_queue import PriorityQueue
+import feed_forest
 from feed_forest import FeedForest
 # from tinyssb import io
 from microssb import packet, feed_manager, ssb_util, io
@@ -19,20 +20,21 @@ class RessourceManager:
         self.faces = faces
         self.path = path
         self.config = config.Config(self.path)
-
-        self.feed_mngr = feed_manager.FeedManager(self.path, self.config.get_key_dict())
-        self.feed_forest = FeedForest(self.feed_mngr)
         self.dmx_front_filters = {}
         self.dmx_want_filters = {}
         self.blob_filters = {}
-        self.in_queue = PriorityQueue(3) # queue with 3 priority classes
+        self.in_queue = PriorityQueue(4) # queue with 4 priority classes
         self.in_blob_queue = []
         self.out_queue = PriorityQueue(3) # queue with 3 priority classes
         self.in_queue_lock  = _thread.allocate_lock()
         self.critical_feeds = self._get_critical_feeds()
-        # TODO: maybe add medium critical category
+
+        self.feed_mngr = feed_manager.FeedManager(self.path, self.config.get_key_dict())
         self._load_dmx_front_filters()
         self._load_dmx_want_filters()
+
+        self.feed_forest = FeedForest(self.feed_mngr, self.dmx_front_filters, self.dmx_want_filters, self.config)
+
         print('ressource manager initialized')
 
     def _get_key_dict(self):
@@ -55,22 +57,23 @@ class RessourceManager:
         If the feed has not yet ended, the expected dmx of the next packet
         gets added to the filter.
         Else, the dmx filter of this feed gets set to \'None\'
+        Only feeds that are not part of a tree structure should be handled here.
         """
+        if feed.has_ended():
+            print('feed has already ended')
+            self.dmx_front_filters.pop(ssb_util.to_hex(feed.fid))
+
         # check if front is blob. If so, add blob pointer to front_filter
         # TODO: If we want to handle blobs seperately, append to seperate filterbank
         next_blob_ptr = feed.waiting_for_blob()
         if next_blob_ptr:
-            self.dmx_front_filters[ssb_util.to_hex(feed.fid)] = next_blob_ptr
+            self.dmx_front_filters[ssb_util.to_hex(feed.fid)] = (next_blob_ptr, self._handle_blob_receive)
             return
         
-        if feed.has_ended():
-            print('feed has already ended')
-            self.dmx_front_filters[ssb_util.to_hex(feed.fid)] = None
-
-
         dmx = feed.get_next_dmx()
         if dmx:
-            self.dmx_front_filters[ssb_util.to_hex(feed.fid)] = dmx
+            self.dmx_front_filters[ssb_util.to_hex(feed.fid)] = (dmx, self._set_priority_in)
+
             return
         print('could not update dmx front for ' + str(ssb_util.to_hex(feed.fid)))
         
@@ -80,14 +83,15 @@ class RessourceManager:
         Adds the dmx bytes of expected packets to dmx-filter."""
         self.dmx_front_filters = {} # reset dictionary
         self.blob_filters = {} # reset dictionary
+        print('front-filters: ')
         for feed in self.feed_mngr.feeds:
             if ssb_util.to_hex(feed.fid) == self.config['feed_id']:
                 continue
             if ssb_util.to_hex(feed.parent_id) == self.config['feed_id']:
                 continue
-            self.in_queue_lock.acquire()
+            # if ssb_util.to_hex(feed.fid) == self.config['admin']:
             self._update_dmx_front(feed)
-            self.in_queue_lock.release()
+        # TODO: add dmx for feeds of 3rd party nodes
 
     def _load_dmx_want_filters(self):
         """
@@ -96,6 +100,7 @@ class RessourceManager:
         for each feed a want dmx gets loaded into the filterbank.
         """
         self.dmx_want_filters = {} # reset dictionary
+        # TODO: only add wants for own and critical feeds (handle tree wants in tree)
         for feed in self.feed_mngr.feeds:
             self.dmx_want_filters[ssb_util.to_hex(feed.fid)] = dmx(feed.fid + b'want')
 
@@ -131,17 +136,22 @@ class RessourceManager:
                 self.out_queue.append(0, (self._pack_want(feed), None))
             else:
                 self.out_queue.append(2, (self._pack_want(feed), None))
+    
+    def _set_priority_in(self, buf, feed_id, in_queue):
+        # It is assumed, only priorities of id feed packets are set here
+        # Packets of trees are managed in tree specific functions
+        if feed_id == self.config['admin']:
+            in_queue.append(0, (buf, feed_id, self._handle_received_pkt))
+        else:
+            in_queue.append(2, (buf, feed_id, self._handle_received_pkt))
 
-    def _handle_front_receive(self, buf, feed_id):
+    def _handle_received_pkt(self, buf, feed_id, _, _2):
         feed = self.feed_mngr.get_feed(feed_id)
         if feed == None:
             print('incoming front error: feed not found')
             return
-        self.in_queue.append(1, (buf, feed))
-        """if feed.verify_and_append_bytes(buf):
-            print('new packet was appended')
-            self.dmx_front_filters[feed_id] = feed.get_next_dmx()"""
-            # TODO: add new front dmx
+        return feed.verify_and_append_bytes(buf)
+        # TODO: add new front dmx
 
     def _handle_blob_receive(self, buf, feed_id):
         """Blobs are written directly and not first appended to in queue."""
@@ -195,9 +205,11 @@ class RessourceManager:
         dmx = buf[:7]
         self.in_queue_lock.acquire()
         for k, v in self.dmx_front_filters.items():
-            if v == dmx:
+            d, fct = v
+            if d == dmx:
                 print('received front dmx: ' + str(dmx))
-                self._handle_front_receive(buf, k)
+                # self._handle_front_receive(buf, k)
+                fct(buf, k, self.in_queue)
                 self.in_queue_lock.release()
                 return
 
@@ -212,39 +224,43 @@ class RessourceManager:
         hash_ptr = hashlib.sha256(buf).digest()[:20]
         # if blobs and dmx handled separately, change filter bank here
         for k, v in self.dmx_front_filters.items():
-            if v == hash_ptr:
+            d, fct = v
+            if d == hash_ptr:
                 print('received expected blob')
-                self._handle_blob_receive(buf, k)
+                # self._handle_blob_receive(buf, k)
+                fct(buf, k, self.in_queue)
                 
-        # if hash_ptr in self.dmx_front_filters.values():
-        #     print('received expected blob')
-        #     # self.in_blob_queue.append((buf, k))
-        #     self._handle_blob_receive(buf, k)
-        # else:
         print('dmx not expected: ' + str(dmx))
         self.in_queue_lock.release()
-        # print('neighbour: ' + str(neighbour))
 
     def ressource_manager_loop(self):
         # TODO: handle out / in queues individually for a given amount of time
         # TODO: Log time spent for different queues for optimizing
         while True:
-            # if len(self.in_blob_queue) > 0:
-            #     blob_buf, blob_k = self.in_blob_queue.pop(0)
-            #     self._handle_blob_receive(blob_buf, blob_k)
-
             next_in = self.in_queue.next()
             if next_in:
-                priority, (buf, feed) = next_in
-                if feed.verify_and_append_bytes(buf):
-                    print('new packet was appended: ' + str(feed.get_next_dmx()))
+                priority, (buf, fid, fct_handle_receive) = next_in
+                pkt = fct_handle_receive(buf, fid, self.in_queue, self.feed_mngr)
+                if pkt:
+                    print('new packet was appended: ' + str(buf[:7]))
+                    # TODO: check for other tree packets + handle feed creation fail
+                    if pkt.pkt_type == packet.PacketType.mk_continuous_tree:
+                        # TODO: handle critical feeds that are not admin
+                        is_critical = fid == self.config['admin']
+                        tree = feed_forest.load_continuous_tree(pkt.payload[:32], self.feed_mngr, self.dmx_front_filters, self.dmx_want_filters, self.config, False, is_critical) 
+                        self.feed_forest.add_subtree(tree)
+
                     # only remove pkt from priority queue after verify
-                    self.in_queue.remove(priority, (buf, feed))
+                    self.in_queue.remove(priority, (buf, fid, fct_handle_receive))
+                    feed = self.feed_mngr.get_feed(fid)
                     self.in_queue_lock.acquire()
                     self._update_dmx_front(feed)
                     self.in_queue_lock.release()
+                else:
+                    print('packet could not be appended')
 
             next_out = self.out_queue.pop_next()
+            
             # print(next_out)
             if next_out != None:
                 pkt, face = next_out
@@ -269,7 +285,3 @@ class RessourceManager:
         while True:
             time.sleep(1)
             self._want_broadcast()
-            # for feed_id in self.repo.listlog():
-            #     if feed_id == self.config['feedID']:
-            #         continue
-            #     self._send_want(self.repo.get_log(feed_id))

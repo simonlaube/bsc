@@ -8,6 +8,8 @@ class Config:
     def __init__(self, path):
         self.config = {}
         self.path = path
+        if not os.path.exists(self.path):
+            os.makedirs(self.path)
         try:
             with open(self.path + 'config.json') as f:
                 self.config = json.load(f)

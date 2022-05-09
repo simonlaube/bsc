@@ -210,7 +210,7 @@ class Feed:
         self.front_seq += 1
         self.front_mid = pkt.mid
         self._update_header()
-        return True
+        return pkt
 
     def append_bytes(self, payload: bytes) -> bool:
         """
@@ -229,7 +229,7 @@ class Feed:
                      self.front_mid, payload, skey=self.skey)
 
         if pkt is None:
-            return False
+            return None
 
         return self.append_pkt(pkt)
 
