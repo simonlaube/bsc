@@ -43,6 +43,7 @@ class FeedForest:
                                     config,
                                     self.is_owner,
                                     self.is_critical)
+                print(ct)
                 subtrees.append(ct)
 
     def add_subtree(self, subtree):
@@ -108,28 +109,39 @@ class ContinuousTree:
             return
         in_queue.append(priority + admin, (buf, ssb_util.from_hex(fid), self._handle_received_pkt)) 
 
-    def _handle_received_pkt(self, buf, fid, in_queue, feed_mngr):
+    def _handle_received_pkt(self, buf, fid, in_queue, feed_mngr, dmx_fltr):
+        print(buf[7:8])
         # TODO: implement (if fork pkt -> create fork, remove dmx of now 3rd last feed)
         if fid not in [f.fid for f in self.feeds]:
             print('given feed not in feed list of this tree')
             return None
-        pkt = self.verify_and_append_bytes(buf, fid)
-        if not pkt:
-            return None
-        if pkt.pkt_type == packet.PacketType.mkchild and int.from_bytes(pkt.seq, 'big') != 2:
-            # TODO: This may be implemented as a feature later.
-            # When forked before this packed later (mk child should be reverted),
-            # consider to remove all feeds that followed (including) this child feed
-            print('can\'t make child inside tree, packet appended anyway')
-            return pkt
-        if pkt.pkt_type == packet.PacketType.mkchild:
-            f = feed_mngr.create_child_feed(fid, pkt[:32])
-            # TODO: remove front dmx of all feeds that are not needed anymore
-            if f:
+
+        pkt = feed_mngr.get_feed(fid).verify_and_append_bytes(buf)
+        # pkt = self.verify_and_append_bytes(buf, feed_mngr.get_feed(fid))
+
+
+        if pkt:
+            if buf[7:8] == packet.PacketType.mkchild:
+                print('try create child')
+                # TODO: potential safety issue: if device crashes after append, no feed created
+                f = feed_mngr.create_feed(buf[8:40])
+                self.feeds.append(f)
+                # TODO: remove front dmx of all feeds that are not needed anymore
                 print('emergency feed created')
+            print(self)
+            self.load_dmx(dmx_fltr, feed_mngr)
+
+        # if pkt.pkt_type == packet.PacketType.mkchild and int.from_bytes(pkt.seq, 'big') != 2:
+        #     # TODO: This may be implemented as a feature later.
+        #     # When forked before this packed later (mk child should be reverted),
+        #     # consider to remove all feeds that followed (including) this child feed
+        #     print('can\'t make child inside tree, packet appended anyway')
+        #     return pkt
+
+        if not self.is_valid or fid == self.feeds[-1]:
+            self._update_tree_validity(feed_mngr)
 
         return pkt
-        # TODO: return pkt if appended
 
     def load(self, feed_mngr, dmx_fltr, want_fltr, config):
         """Loads the feeds, and front position from feeds. If cache file available,
@@ -149,36 +161,68 @@ class ContinuousTree:
                 next_feed = feed_mngr.get_feed(next_fid)
                 continue
             break
-        
-        # Add to dmx front filters if not owner of tree
-        if not self.is_owner:
-            if len(self.feeds) == 1:
-                newest_feeds = [self.feeds[-1]]
-            elif len(self.feeds) == 0:
-                print('error: at least one feed must be present')
-                return
-            else:
-                newest_feeds = [self.feeds[-2], self.feeds[-1]]
-            
-            for f in newest_feeds:
-                next_blob_ptr = f.waiting_for_blob()
-                if next_blob_ptr:
-                    dmx_fltr[ssb_util.to_hex(f.fid)] = (next_blob_ptr, self._set_priority_in)
-                    continue
-                dmx = f.get_next_dmx()
-                if dmx:
-                    dmx_fltr[ssb_util.to_hex(f.fid)] = (dmx, self._set_priority_in)
-                else:
-                    print('could not load dmx front ' + str(ssb_util.to_hex(f.fid)))
+        print(self)
+        self.load_dmx(dmx_fltr, feed_mngr)
 
         if self._update_tree_validity(feed_mngr):
             print('loaded continuous tree ' + str(ssb_util.to_hex(self.root_fid)))
+        
+    def load_dmx(self, dmx_fltr, feed_mngr):
+        # Add to dmx front filters if not owner of tree
+        if self.is_owner:
+            return
+        cat = ssb_util.to_hex(self.root_fid)[:8]
+        dmx_fltr.reset_category(cat)
+        if len(self.feeds) == 1:
+            dmx_fltr.append(cat, ssb_util.to_hex(self.feeds[-1].fid), self._next_dmx(self.feeds[-1]))
+        else:
+            if len(self.feeds[-1]) <= 2: # last feed is emergency feed
+                dmx_fltr.append(cat, ssb_util.to_hex(self.feeds[-1].fid), self._next_dmx(self.feeds[-1]))
+                next_feed = self.feeds[-2]
+            else: # emergency feed already used
+                next_feed = self.feeds[-1]
+            next_seq = 0
+            while next_feed:
+                # next_feed is not yet complete up until fork
+                if next_seq < len(next_feed):
+                    dmx_fltr.append(cat, ssb_util.to_hex(next_feed.fid), self._next_dmx(next_feed))
+
+                if len(next_feed) > 2: # fork pkt exists
+                    next_fid = next_feed[2][:32]
+                    next_seq = int.from_bytes(next_feed[2][32:36], 'big')
+                    next_feed = feed_mngr.get_feed(next_fid)
+                    continue
+                break
+
+
+
+
+            # if len(self.feeds) == 1:
+            #     newest_feeds = [self.feeds[-1]]
+            # elif len(self.feeds) == 0:
+            #     print('error: at least one feed must be present')
+            #     return
+            # else:
+            #     newest_feeds = [self.feeds[-2], self.feeds[-1]]
+            
+            # for f in newest_feeds:
+            #     self._next_dmx(f, dmx_fltr) # updates dmx for feed
+
+        
 
         # TODO: Later maybe load from cache file if available
-    
+
+    def _next_dmx(self, feed):
+        next_blob_ptr = feed.waiting_for_blob()
+        if next_blob_ptr:
+            return (next_blob_ptr, self._set_priority_in)
+        dmx = feed.get_next_dmx()
+        if dmx:
+            return (dmx, self._set_priority_in)
+        print('could not load dmx front ' + str(ssb_util.to_hex(f.fid)))
+        
     def _update_tree_validity(self, feed_mngr):
         # get number of packets by walking backwards via the fork pointers
-        print(self)
         if len(self.feeds) < 2:
             print('continuous tree is not valid at the moment')
             self.is_valid = False
@@ -187,6 +231,9 @@ class ContinuousTree:
         curr_seq = len(self.feeds[-2])
         while curr_feed != self.feeds[0]:
             self.front_pos += (curr_seq - 4)
+            if len(curr_feed) < 3:
+                print('tree is not valid (yet) because no fork pkt present')
+                return False
             curr_seq = int.from_bytes(curr_feed.get(3)[0:4], 'big')
             curr_feed = feed_mngr.get_feed(curr_feed.get(3)[4:36])
         if len(self.feeds[-1]) != 1:
@@ -228,21 +275,7 @@ class ContinuousTree:
         self.feeds.append(next_emergency_feed) # update feed list
         self.front_pos = pos
         return True
-    
-    def verify_and_append_bytes(self, pkt_wire: bytes, fid = None) -> bool:
-        if self.has_ended:
-            return False        
-
-        # if only the first feed available or new emergency -> fid != None
-        if fid == self.feeds[-1].fid:
-            success = self.feeds[-1].verify_and_append_bytes(pkt_wire)
-
-        else:
-            success = self.feeds[-2].verify_and_append_bytes(pkt_wire)
-            # TODO: check if pkt ends tree / forks / ...
-            # TODO: update dmx
-        return success
-    
+   
     def end_tree(self):
         pass
 

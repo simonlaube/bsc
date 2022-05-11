@@ -34,7 +34,6 @@ class PriorityQueue:
     def append(self, priority, pkt):
         # TODO: check for duplicates with hashtable...?
         if pkt in self.queue[priority]:
-            print("packet dropped - already in queue")
             return
         if priority < 0 or priority > self.nr_priorities - 1:
             print('the given priority is out of range: it is now adjusted to the closest valid priority.')
