@@ -113,6 +113,7 @@ class RessourceManager:
         """
         want_dmx = dmx(feed.fid + b'want')
         seq = len(feed) + 1
+        print('want: ' + ssb_util.to_hex(feed.fid) + ' - ' + str(seq))
         hash_pointer = feed.waiting_for_blob()
         # if next packet has to be blob -> append ptr to want request
         if hash_pointer:
@@ -129,16 +130,19 @@ class RessourceManager:
         Adds want packets for feeds that are not owned by this node to priority queue.
         If a feed is 'critical', it will have highest priority.
         """
-        for feed in self.feed_mngr.feeds:
-            if ssb_util.to_hex(feed.fid) == self.config['feed_id']:
-                continue
-            if ssb_util.to_hex(feed.fid) in self.config['child_feeds'].keys():
-                continue
-            # print(self.config['child_feeds'])
-            if feed.fid in self.critical_feeds:
-                self.out_queue.append(0, (self._pack_want(feed), None))
-            else:
-                self.out_queue.append(2, (self._pack_want(feed), None))
+        next_want = self.dmx_fltr.get_next_want_wire(self.feed_mngr, dmx)
+        self.out_queue.append(0, (next_want, None))
+        # for feed in self.feed_mngr.feeds:
+        #     if ssb_util.to_hex(feed.fid) == self.config['feed_id']:
+        #         continue
+        #     if ssb_util.to_hex(feed.fid) in self.config['child_feeds'].keys():
+        #         continue
+        #     # print(self.config['child_feeds'])
+        #     if feed.fid in self.critical_feeds:
+        #         next_want_feed = self.dmx_fltr.get_next_want_feed(self.feed_mngr)
+        #         self.out_queue.append(0, (self._pack_want(next_want_feed), None))
+        #     else:
+        #         self.out_queue.append(2, (self._pack_want(feed), None))
     
     def _set_priority_in(self, buf, feed_id, in_queue):
         # It is assumed, only priorities of id feed packets are set here
@@ -248,6 +252,14 @@ class RessourceManager:
         # TODO: handle out / in queues individually for a given amount of time
         # TODO: Log time spent for different queues for optimizing
         while True:
+            # --------- want broadcast ---------------
+            next_want = self.dmx_fltr.get_next_want_wire(self.feed_mngr, dmx)
+            if next_want:
+                for f in self.faces:
+                    f.enqueue(next_want)
+
+
+            # --------- append next pkt ---------------
             next_in = self.in_queue.next()
             if next_in:
                 priority, (buf, fid, fct_handle_receive) = next_in
@@ -268,6 +280,7 @@ class RessourceManager:
                 self.in_queue.remove(priority, (buf, fid, fct_handle_receive))
 
 
+            # --------- send next pkt ---------------
             next_out = self.out_queue.pop_next()
             
             # print(next_out)
@@ -293,4 +306,4 @@ class RessourceManager:
         # keep main thread alive
         while True:
             time.sleep(2)
-            self._want_broadcast()
+            # self._want_broadcast()

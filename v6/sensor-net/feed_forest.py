@@ -129,6 +129,7 @@ class ContinuousTree:
                 # TODO: remove front dmx of all feeds that are not needed anymore
                 print('emergency feed created')
             print(self)
+            # TODO: Optimize to not only update whole tree dmx
             self.load_dmx(dmx_fltr, feed_mngr)
 
         # if pkt.pkt_type == packet.PacketType.mkchild and int.from_bytes(pkt.seq, 'big') != 2:
@@ -171,27 +172,28 @@ class ContinuousTree:
         # Add to dmx front filters if not owner of tree
         if self.is_owner:
             return
-        cat = ssb_util.to_hex(self.root_fid)[:8]
+        cat = ssb_util.to_hex(self.root_fid)[:8] # category name for dmx of this tree
         dmx_fltr.reset_category(cat)
         if len(self.feeds) == 1:
             dmx_fltr.append(cat, ssb_util.to_hex(self.feeds[-1].fid), self._next_dmx(self.feeds[-1]))
         else:
-            if len(self.feeds[-1]) <= 2: # last feed is emergency feed
+            if len(self.feeds[-1]) < 2: # last feed is emergency feed
                 dmx_fltr.append(cat, ssb_util.to_hex(self.feeds[-1].fid), self._next_dmx(self.feeds[-1]))
                 next_feed = self.feeds[-2]
             else: # emergency feed already used
                 next_feed = self.feeds[-1]
-            next_seq = 0
-            while next_feed:
+            next_seq = len(next_feed) + 1 # guarantees feed will be appended to dmx
+            while next_feed: # walk back fork path
                 # next_feed is not yet complete up until fork
-                if next_seq < len(next_feed):
+                if next_seq > len(next_feed):
                     dmx_fltr.append(cat, ssb_util.to_hex(next_feed.fid), self._next_dmx(next_feed))
 
                 if len(next_feed) > 2: # fork pkt exists
-                    next_fid = next_feed[2][:32]
-                    next_seq = int.from_bytes(next_feed[2][32:36], 'big')
+                    next_fid = next_feed[3][4:36]
+                    next_seq = int.from_bytes(next_feed[3][:4], 'big')
                     next_feed = feed_mngr.get_feed(next_fid)
                     continue
+                print('error in tree structure')
                 break
 
 
