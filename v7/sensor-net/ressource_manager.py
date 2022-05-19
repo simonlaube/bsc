@@ -1,16 +1,18 @@
-import gc
 import time
 import hashlib
-import json
+import sys
 import _thread
 import config
-import machine
 from dmx_fltr import DMXFilter
 from priority_queue import PriorityQueue
-import feed_forest
+import fork_tree
 from feed_forest import FeedForest
 # from tinyssb import io
 from microssb import packet, feed_manager, ssb_util, io
+
+if sys.implementation.name == "micropython":
+    import machine
+    import gc
 
 def dmx(msg: bytes):
     return hashlib.sha256(msg).digest()[:7]
@@ -151,13 +153,14 @@ class RessourceManager:
             print('incoming front error: feed not found')
             return
 
-        print('try to verify')
-        print(buf)
+        if feed.waiting_for_blob():
+            success = feed.verify_and_append_blob(buf)
+            if success:
+                self.update_dmx_front(feed)
+            return success
         pkt = feed.verify_and_append_bytes(buf)
         if pkt:
-            # self.in_queue_lock.acquire()
             self._update_dmx_front(feed)
-            # self.in_queue_lock.release()
 
         return pkt
         # TODO: add new front dmx
@@ -244,27 +247,28 @@ class RessourceManager:
 
     def try_append(self, priority, buf, fid, fct_handle_receive):
         self.append_lock.acquire()
-        gc.collect() # is this necessary?
+        if sys.implementation == 'micropython':
+            gc.collect() # is this necessary?
         self.in_queue_lock.acquire()
         pkt = fct_handle_receive(buf, fid, self.in_queue, self.feed_mngr, self.dmx_fltr)
         self.in_queue_lock.release()
-        if pkt:
+        if pkt == True:
+            print('new blob was appended')
+        elif pkt:
             print('new packet was appended: ' + str(buf[:7]))
             # TODO: check for other tree packets + handle feed creation fail
-            if pkt.pkt_type == packet.PacketType.mk_continuous_tree:
+            if pkt.pkt_type == packet.PacketType.mk_fork_tree:
                 # TODO: handle critical feeds that are not admin
                 is_critical = fid == self.config['admin']
-                tree = feed_forest.load_continuous_tree(pkt.payload[:32], self.feed_mngr, self.dmx_fltr, self.want_fltr, self.config, False, is_critical)
+                tree = fork_tree.load_fork_tree(pkt.payload[:32], self.feed_mngr, self.dmx_fltr, self.want_fltr, self.config, False, is_critical)
                 self.feed_forest.add_subtree(tree)
 
             # only remove pkt from priority queue after verify
-            feed = self.feed_mngr.get_feed(fid)
+            # feed = self.feed_mngr.get_feed(fid)
         else:
             print('packet could not be appended')
         self.in_queue.remove(priority, (buf, fid, fct_handle_receive))
         self.append_lock.release()
-        print('try append done')
-        print(machine.info())
 
     def ressource_manager_loop(self):
         # TODO: handle want / out / in queues individually for a given amount of time
@@ -299,7 +303,7 @@ class RessourceManager:
                     else:
                         face.enqueue(pkt)
             # TODO: check battery and decide
-            time.sleep(4)
+            time.sleep(2)
 
     def start(self):
         self.io_loop = io.IOLOOP(self.faces, self.on_receive)

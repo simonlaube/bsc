@@ -22,12 +22,12 @@ class PacketType:
     ischild = bytes([0x02])  # metafeed information, only in genesis block
     iscontn = bytes([0x03])  # metafeed information, only in genesis block
     mkchild = bytes([0x04])  # metafeed information
-    mk_continuous_tree = bytes([0x05]) # metafeed information
+    mk_fork_tree = bytes([0x05]) # metafeed information
     mk_session_tree = bytes([0x05]) # metafeed information
     contdas = bytes([0x07])  # metafeed information
     acknldg = bytes([0x08])  # proof of having some fid:seq:sig entry
     fork = bytes([0x09])
-    types = [plain48, chain20, ischild, iscontn, mkchild, mk_continuous_tree, mk_session_tree, contdas, acknldg, fork]
+    types = [plain48, chain20, ischild, iscontn, mkchild, mk_fork_tree, mk_session_tree, contdas, acknldg, fork]
 
     @classmethod
     def is_type(cls, t: bytes) -> bool:
@@ -249,14 +249,14 @@ def create_tree_pkt(fid: bytes,
                     skey: bytes,
                     pkt_type: PacketType) -> Packet:
     """
-    If packet types continuous tree or session tree are given, 
-    this returns a mk_continuous_tree or mk_session_tree packet.
+    If packet types fork tree or session tree are given, 
+    this returns a mk_fork_tree or mk_session_tree packet.
     Is used in parent feed, to refer to first feed in subtree.
     No payload can be attached to this packet,
     as it contains information about the child feed.
     """
     # TODO: add more info (time stamp?)
-    if (pkt_type != PacketType.mk_continuous_tree
+    if (pkt_type != PacketType.mk_fork_tree
         and pkt_type != PacketType.mk_session_tree):
         print('No Subtree Packet Type given.')
         return None
@@ -272,7 +272,7 @@ def create_fork_pkt(fid: bytes,
     """
     Creates a fork packet that indicates which past pos should be made the
     current front state again. This packed should be appended to a newly
-    created feed and reference the relative pos of a continuous tree structure.
+    created feed and reference the relative pos of a fork tree structure.
     (not the seq of a feed)
     """
     return Packet(fid, seq, prev_mid, payload=fork_seq+forked_fid,

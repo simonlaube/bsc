@@ -2,7 +2,10 @@
 
 # import binascii
 import hashlib
-import gc
+import sys
+if sys.implementation == 'micropython':
+    import gc
+
 
 Q = 2**255 - 19
 L = 2**252 + 27742317777372353535851937790883648493
@@ -132,7 +135,8 @@ def scalarmult_element_safe_slow(pt, n):
     v = None
     f = bytearray(256)
     i = 0
-    gc.collect()
+    if sys.implementation == 'micropython':
+        gc.collect()
     while True:
         if n==0:
             v = xform_affine_to_extended((0,1))

@@ -64,7 +64,7 @@ class Feed:
                 feed += " MKC |"
             if pkt_type == PacketType.contdas:
                 feed += " CTD |"
-            if pkt_type == PacketType.mk_continuous_tree:
+            if pkt_type == PacketType.mk_fork_tree:
                 feed += " TCO |"
             if pkt_type == PacketType.mk_session_tree:
                 feed += " TSE |"

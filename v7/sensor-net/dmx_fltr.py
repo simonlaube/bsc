@@ -1,9 +1,12 @@
+import time
+
 class DMXFilter:
 
     def __init__(self):
         self.fltr_dict = {}
         self.size = 0
         self.want_pos = 0
+        self.want_buffer = {}
     
     def __contains__(self, fid: str):
         keys = self._find(fid)
@@ -58,6 +61,16 @@ class DMXFilter:
                 else:
                     wire = dmx + feed.fid + seq.to_bytes(4, 'big')
                 self.want_pos += 1
+
+                ti = int(time.time())
+                if k2 in self.want_buffer:
+                    last_want = self.want_buffer[k2]
+                    if last_want:
+                        s, t = last_want
+                        # if same want -> wait for some time
+                        if s == seq and ti - t < self.size * 2:
+                            continue
+                self.want_buffer[k2] = (seq, ti)
                 return wire
         self.want_pos = 0
         return None
