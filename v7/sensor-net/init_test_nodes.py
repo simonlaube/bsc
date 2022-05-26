@@ -17,6 +17,7 @@ from microssb import feed_manager, packet, ssb_util
 from config import Config
 import feed_forest
 import fork_tree
+import session_tree
 
 os.system("rm -rf data")
 
@@ -78,6 +79,31 @@ for c in configs.values():
         f = feed_mngr.create_feed(c['feed_id'], c['secret'])
 
         ct = None
+        st = session_tree.create_session_tree(c['feed_id'], feed_mngr, {}, {}, c)
+        st.append_bytes(b'test', feed_mngr, c)
+        st.append_bytes(b'test', feed_mngr, c)
+        st.append_bytes(b'test', feed_mngr, c)
+        st.append_bytes(b'test', feed_mngr, c)
+        st.append_bytes(b'test', feed_mngr, c)
+        st.append_bytes(b'test', feed_mngr, c)
+        st.append_bytes(b'test', feed_mngr, c)
+        st.append_bytes(b'test', feed_mngr, c)
+        st.append_bytes(b'test', feed_mngr, c)
+        st.append_bytes(b'test', feed_mngr, c)
+        st.append_bytes(b'test', feed_mngr, c)
+        st.append_bytes(b'test', feed_mngr, c)
+        st.append_bytes(b'test', feed_mngr, c)
+        st.append_bytes(b'test', feed_mngr, c)
+        st.append_bytes(b'test', feed_mngr, c)
+        st.append_bytes(b'test', feed_mngr, c)
+        st.append_bytes(b'test', feed_mngr, c)
+        st.append_bytes(b'test', feed_mngr, c)
+        st.append_bytes(b'test', feed_mngr, c)
+        st.append_bytes(b'test', feed_mngr, c)
+        st.append_bytes(b'test', feed_mngr, c)
+        print(st.__str__(feed_mngr))
+
+        """
         for i in range(0, 3):
 
             # f = feed_mngr.create_subtree_root_feed(n['feed_id'], pk, sk, packet.PacketType.mk_fork_tree)
@@ -105,6 +131,7 @@ for c in configs.values():
         ct.fork_at(0, feed_mngr, c)
 
         print(ct)
+        """
 
         # feed = feed_mngr.get_feed(n['feed_id'])
         # feed.append_blob(bytes(500))

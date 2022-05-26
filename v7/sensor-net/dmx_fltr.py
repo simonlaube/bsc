@@ -68,7 +68,7 @@ class DMXFilter:
                     if last_want:
                         s, t = last_want
                         # if same want -> wait for some time
-                        if s == seq and ti - t < self.size * 2:
+                        if s == seq and ti - t < self.size * 3:
                             continue
                 self.want_buffer[k2] = (seq, ti)
                 return wire

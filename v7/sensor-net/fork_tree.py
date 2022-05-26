@@ -65,7 +65,7 @@ class ForkTree:
             return
         in_queue.append(priority + admin, (buf, ssb_util.from_hex(fid), self._handle_received_pkt))
 
-    def _handle_received_pkt(self, buf, fid, in_queue, feed_mngr, dmx_fltr):
+    def _handle_received_pkt(self, buf, fid, in_queue, feed_mngr, dmx_fltr, want_fltr):
         # TODO: implement (if fork pkt -> create fork, remove dmx of now 3rd last feed)
         if fid not in [f.fid for f in self.feeds]:
             print('given feed not in feed list of this tree')
@@ -100,6 +100,7 @@ class ForkTree:
         """Loads the feeds, and front position from feeds. If cache file available,
         use this to load tree."""
         # TODO: Maybe check first if tree has ended and act appropriately
+        self.feeds = []
         next_feed = feed_mngr.get_feed(self.root_fid)
         if next_feed == None:
             next_feed = feed_mngr.create_feed(self.root_fid)
@@ -156,7 +157,7 @@ class ForkTree:
         dmx = feed.get_next_dmx()
         if dmx:
             return (dmx, self._set_priority_in)
-        print('could not load dmx front ' + str(ssb_util.to_hex(f.fid)))
+        print('could not load dmx front ' + str(ssb_util.to_hex(feed.fid)))
         
     def _update_tree_validity(self, feed_mngr):
         # get number of packets by walking backwards via the fork pointers
@@ -233,7 +234,7 @@ def create_fork_tree(feed_id, feed_mngr, dmx_fltr, want_fltr, config):
     subtree-root-feed and returns secret key, public key as well as a 
     newly created ForkTree object."""
     sk, pk = config.new_child_keypair(as_bytes=True)
-    f = feed_mngr.create_subtree_root_feed(ssb_util.from_hex(feed_id), pk, sk, packet.PacketType.mk_fork_tree)
+    f = feed_mngr.create_tree_root_feed(ssb_util.from_hex(feed_id), pk, sk, packet.PacketType.mk_fork_tree)
 
     prepare_fork_feed(pk, feed_mngr, config)
     ct = ForkTree(f.fid, feed_mngr, dmx_fltr, want_fltr, config, True, True)

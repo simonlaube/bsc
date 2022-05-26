@@ -261,7 +261,7 @@ class FeedManager:
         ending_feed.append_pkt(end_pkt)
         return contn_feed
 
-    def create_subtree_root_feed(self,
+    def create_tree_root_feed(self,
                         parent_fid: Union[bytes, Feed],
                         child_fid: bytes,
                         child_skey: bytes,

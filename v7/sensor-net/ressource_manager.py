@@ -6,6 +6,7 @@ import config
 from dmx_fltr import DMXFilter
 from priority_queue import PriorityQueue
 import fork_tree
+import session_tree
 from feed_forest import FeedForest
 # from tinyssb import io
 from microssb import packet, feed_manager, ssb_util, io
@@ -147,7 +148,7 @@ class RessourceManager:
         else:
             in_queue.append(2, (buf, feed_id, self._handle_received_pkt))
 
-    def _handle_received_pkt(self, buf, feed_id, _, _2, _3):
+    def _handle_received_pkt(self, buf, feed_id, _, _2, _3, _4):
         feed = self.feed_mngr.get_feed(feed_id)
         if feed == None:
             print('incoming front error: feed not found')
@@ -250,7 +251,7 @@ class RessourceManager:
         if sys.implementation == 'micropython':
             gc.collect() # is this necessary?
         self.in_queue_lock.acquire()
-        pkt = fct_handle_receive(buf, fid, self.in_queue, self.feed_mngr, self.dmx_fltr)
+        pkt = fct_handle_receive(buf, fid, self.in_queue, self.feed_mngr, self.dmx_fltr, self.want_fltr)
         self.in_queue_lock.release()
         if pkt == True:
             print('new blob was appended')
@@ -261,6 +262,11 @@ class RessourceManager:
                 # TODO: handle critical feeds that are not admin
                 is_critical = fid == self.config['admin']
                 tree = fork_tree.load_fork_tree(pkt.payload[:32], self.feed_mngr, self.dmx_fltr, self.want_fltr, self.config, False, is_critical)
+                self.feed_forest.add_subtree(tree)
+            if pkt.pkt_type == packet.PacketType.mk_session_tree:
+                print('make session tree')
+                is_critical = fid == self.config['admin']
+                tree = session_tree.load_session_tree(pkt.payload[:32], self.feed_mngr, self.dmx_fltr, self.want_fltr, self.config, False, is_critical)
                 self.feed_forest.add_subtree(tree)
 
             # only remove pkt from priority queue after verify

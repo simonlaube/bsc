@@ -1,7 +1,7 @@
 from microssb import ssb_util, packet
 import fork_tree
+import session_tree
 import config
-import fork_tree
 
 class FeedForest:
 
@@ -40,8 +40,16 @@ class FeedForest:
                                     config,
                                     self.is_owner,
                                     self.is_critical)
-                print(ct)
                 subtrees.append(ct)
+            if type == packet.PacketType.mk_session_tree:
+                st = session_tree.load_session_tree(feed[i][:32],
+                                                    feed_mngr,
+                                                    dmx_fltr,
+                                                    want_fltr,
+                                                    config,
+                                                    self.is_owner,
+                                                    self.is_critical)
+                subtrees.append(st)
 
     def add_subtree(self, subtree):
         self.trees[ssb_util.to_hex(subtree.root_fid)] = subtree

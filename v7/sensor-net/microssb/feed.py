@@ -47,11 +47,9 @@ class Feed:
         seperator = ("+-----" * (length + 1)) + "+"
         numbers = "   {}  ".format(self.anchor_seq)
         feed = "| HDR |"
-
         for i in range(self.anchor_seq + 1, self.front_seq + 1):
             numbers += "   {}  ".format(i)
             pkt_type = self.get_type(i)
-
             if pkt_type == PacketType.plain48:
                 feed += " P48 |"
             if pkt_type == PacketType.chain20:

@@ -17,6 +17,7 @@ from microssb import feed_manager, packet, ssb_util
 from config import Config
 from prepare_for_pycom import clear_folder, copy_source_code
 import feed_forest
+import fork_tree
 
 pk_admin = 'd730877d91c0ffd84c26c6c7eb281c082d2c2d8c3d613c645fd5aea51153b6ab'
 sk_admin = 'bae0c60ad02faabe23ed24a643db4f920c1bd869cfdbecee132b47b7282dba40'
@@ -48,7 +49,7 @@ def create_files(config, admin = False):
         for i in range(0, 3):
             # sk, _ = pure25519.create_keypair()
             # sk, pk = sk.sk_s[:32], sk.vk_s
-            sk, pk, ct = feed_forest.create_continuous_tree(pk_admin, feed_mngr, {}, {}, config)
+            sk, pk, ct = fork_tree.create_fork_tree(pk_admin, feed_mngr, {}, {}, config)
             # config['child_feeds'][hex(pk)] = hex(sk)
             if i != 2:
                 continue

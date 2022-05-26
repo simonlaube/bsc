@@ -23,10 +23,10 @@ class PacketType:
     iscontn = bytes([0x03])  # metafeed information, only in genesis block
     mkchild = bytes([0x04])  # metafeed information
     mk_fork_tree = bytes([0x05]) # metafeed information
-    mk_session_tree = bytes([0x05]) # metafeed information
+    mk_session_tree = bytes([0x06]) # metafeed information
     contdas = bytes([0x07])  # metafeed information
     acknldg = bytes([0x08])  # proof of having some fid:seq:sig entry
-    fork = bytes([0x09])
+    fork = bytes([0x09]) # seq and fid of fork pos
     types = [plain48, chain20, ischild, iscontn, mkchild, mk_fork_tree, mk_session_tree, contdas, acknldg, fork]
 
     @classmethod
@@ -203,6 +203,7 @@ def pkt_from_bytes(fid: bytes,
     pkt = Packet(fid, seq, prev_mid, payload, pkt_type=pkt_type)
 
     # use fid as verification key
+    """
     if verify_elliptic(pkt._expand(), signature, fid):
         # verification successful
         # fill-in signature and calculate missing info
@@ -213,6 +214,12 @@ def pkt_from_bytes(fid: bytes,
     else:
         print("packet not trusted")
         return None
+    """
+    print('verification skipped')
+    pkt.signature = signature
+    pkt.mid = pkt._calc_mid()
+    pkt.wire = pkt_wire
+    return pkt
 
 
 def create_genesis_pkt(fid: bytes, payload: bytes, skey: bytes) -> Packet:
