@@ -1,4 +1,5 @@
 import time
+import random
 
 class DMXFilter:
 
@@ -43,16 +44,20 @@ class DMXFilter:
         return None
     
     def get_next_want_wire(self, feed_mngr, dmx_fct):
+        want_pos = random.randint(0, self.size)
         if self.want_pos + 1 > self.size:
             self.want_pos = 0
         wire = None
         pos = 0
         for k, v in self.fltr_dict.items():
             for k2, v2 in v.items():
-                if self.want_pos != pos:
+                if want_pos != pos:
                     pos += 1
                     continue
                 feed = feed_mngr.get_feed(k2)
+                if feed.has_ended():
+                    want_pos = (want_pos + 1) % self.size
+                    continue
                 dmx = dmx_fct(feed.fid + b'want')
                 seq = len(feed) + 1
                 hash_pointer = feed.waiting_for_blob()
@@ -60,7 +65,6 @@ class DMXFilter:
                     wire = dmx + feed.fid + (seq - 1).to_bytes(4, 'big') + hash_pointer
                 else:
                     wire = dmx + feed.fid + seq.to_bytes(4, 'big')
-                self.want_pos += 1
 
                 ti = int(time.time())
                 if k2 in self.want_buffer:
@@ -68,11 +72,11 @@ class DMXFilter:
                     if last_want:
                         s, t = last_want
                         # if same want -> wait for some time
-                        if s == seq and ti - t < self.size * 3:
+                        if s == seq and ti - t < self.size * 2:
+                            want_pos = (want_pos + 1) % self.size
                             continue
                 self.want_buffer[k2] = (seq, ti)
                 return wire
-        self.want_pos = 0
         return None
 
     def append(self, category: str, fid: str, dmx):

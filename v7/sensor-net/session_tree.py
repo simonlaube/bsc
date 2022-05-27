@@ -5,7 +5,8 @@ import hashlib
 def _dmx(msg: bytes):
     return hashlib.sha256(msg).digest()[:7]
 
-    
+# TODO: Add cache file containing all feeds created for this tree
+# remove feeds that are not needed anymore
 
 class SessionTree:
 
@@ -20,15 +21,20 @@ class SessionTree:
         self.is_owner = is_owner
         self.is_critical = is_critical
         self.load(feed_mngr, dmx_fltr, want_fltr, config)
+        print(self.__str__(feed_mngr))
 
     def __str__(self, feed_mngr):
         res = 'Session Feed \n\n'
         res += feed_mngr.get_feed(self.root_fid).__str__() + '\n\n'
         for f in self.feeds:
             tmp = f.__str__()
+            if f == None:
+                continue
             p = f.get_prev()
             while p:
                 p = feed_mngr.get_feed(p)
+                if p == None:
+                    break
                 tmp = p.__str__() + ' -> \n' + tmp
                 p = p.get_prev()
             res += tmp + "\n\n\n"
@@ -75,15 +81,21 @@ class SessionTree:
                 self.feeds[layer] = next_feed
             else:
                 print('error: loading feed list')
+        else:
+            self.feeds[0] = next_feed
 
         # load session feeds
         session_feed = self.feeds[0]
         pos = 0
-        while session_feed != None and pos < self.max_sessions_stored:
-            dmx_fltr.append(cat, ssb_util.to_hex(session_feed.fid), self._next_dmx(session_feed))
+        while session_feed != None and pos < self.max_sessions_stored - 1:
+            self._add_want_fltr(session_feed.fid, want_fltr)
             self.session_feeds.append(session_feed)
             session_fid = session_feed.get_prev()
+            if session_fid == None:
+                break
             session_feed = feed_mngr.get_feed(session_fid)
+            if session_feed == None:
+                session_feed = feed_mngr.create_feed(session_fid)
             pos += 1
 
         self.load_dmx(dmx_fltr, feed_mngr)
@@ -98,7 +110,7 @@ class SessionTree:
         if len(self.feeds) == 0:
             return
 
-        for f in self.feeds:
+        for f in self.feeds[1:]:
             if f == None:
                 continue
             dmx_fltr.append(cat, ssb_util.to_hex(f.fid), self._next_dmx(f))
@@ -135,9 +147,8 @@ class SessionTree:
             print('try append to ptr-feeds')
             
         else:
-            print('packet not expected in tree')        
-            print(buf)
-            return
+            append_type = 'background'
+            print('packet for prev feed in tree received')        
         
         feed = feed_mngr.get_feed(fid)
         if feed.waiting_for_blob():
@@ -145,6 +156,9 @@ class SessionTree:
         else:
             pkt = feed.verify_and_append_bytes(buf)
         if pkt:
+            if append_type == 'background':
+                self.load_dmx(dmx_fltr, feed_mngr)
+                return pkt
             # create new ptr layer
             if pkt.pkt_type == packet.PacketType.mkchild:
                 fd = feed_mngr.create_feed(buf[8:40])
@@ -172,19 +186,37 @@ class SessionTree:
                             self._add_want_fltr(fd.fid, want_fltr)
                             self.feeds[i - 1] = fd
                             if i - 1 == 0:
+                                self.session_feeds = []
                                 session_feed = self.feeds[0]
                                 pos = 0
-                                while session_feed != None and pos < self.max_sessions_stored:
-                                    dmx_fltr.append(cat, ssb_util.to_hex(session_feed.fid), self._next_dmx(session_feed))
+                                while session_feed != None and pos < self.max_sessions_stored - 1:
                                     self.session_feeds.append(session_feed)
                                     session_fid = session_feed.get_prev()
+                                    if session_fid == None:
+                                        break
                                     session_feed = feed_mngr.get_feed(session_fid)
+                                    if session_feed == None:
+                                        session_feed = feed_mngr.create_feed(session_fid)
                                     pos += 1
                 print('new pointer was appended')
             elif append_type == 'session':
                 print('new pkt payload was appended')
             else:
                 print('should not end up here')
+            # create prev session feed if new contn pkt received
+            if pkt.pkt_type == packet.PacketType.iscontn and fid in [f.fid for f in self.session_feeds]:
+                session_feed = self.feeds[0]
+                pos = 0
+                while session_feed != None and pos < self.max_sessions_stored:
+                    self.session_feeds.append(session_feed)
+                    session_fid = session_feed.get_prev()
+                    if session_fid == None:
+                        break
+                    session_feed = feed_mngr.get_feed(session_fid)
+                    if session_feed == None:
+                        session_feed = feed_mngr.create_feed(session_fid)
+                    pos += 1
+
 
             self.load_dmx(dmx_fltr, feed_mngr)
             print(self.__str__(feed_mngr))
