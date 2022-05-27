@@ -6,7 +6,6 @@ class DMXFilter:
     def __init__(self):
         self.fltr_dict = {}
         self.size = 0
-        self.want_pos = 0
         self.want_buffer = {}
     
     def __contains__(self, fid: str):
@@ -45,8 +44,6 @@ class DMXFilter:
     
     def get_next_want_wire(self, feed_mngr, dmx_fct):
         want_pos = random.randint(0, self.size)
-        if self.want_pos + 1 > self.size:
-            self.want_pos = 0
         wire = None
         pos = 0
         for k, v in self.fltr_dict.items():
