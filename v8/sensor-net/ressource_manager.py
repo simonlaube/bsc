@@ -309,7 +309,7 @@ class RessourceManager:
                     else:
                         face.enqueue(pkt)
             # TODO: check battery and decide
-            time.sleep(2)
+            time.sleep(4)
 
     def start(self):
         self.io_loop = io.IOLOOP(self.faces, self.on_receive)

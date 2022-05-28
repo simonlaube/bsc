@@ -1,5 +1,10 @@
+import sys
 import time
-import random
+
+if sys.implementation.name == 'micropython':
+    import machine
+else:
+    import random
 
 class DMXFilter:
 
@@ -43,7 +48,12 @@ class DMXFilter:
         return None
     
     def get_next_want_wire(self, feed_mngr, dmx_fct):
-        want_pos = random.randint(0, self.size)
+        if self.size == 0:
+            return None
+        if sys.implementation.name == 'micropython':
+            want_pos = machinr.rng() % self.size
+        else:
+            want_pos = random.randint(0, self.size)
         wire = None
         pos = 0
         for k, v in self.fltr_dict.items():

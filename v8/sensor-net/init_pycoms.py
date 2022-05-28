@@ -18,6 +18,7 @@ from config import Config
 from prepare_for_pycom import clear_folder, copy_source_code
 import feed_forest
 import fork_tree
+import session_tree
 
 pk_admin = 'd730877d91c0ffd84c26c6c7eb281c082d2c2d8c3d613c645fd5aea51153b6ab'
 sk_admin = 'bae0c60ad02faabe23ed24a643db4f920c1bd869cfdbecee132b47b7282dba40'
@@ -46,6 +47,30 @@ def create_files(config, admin = False):
 
     else:
         main_feed = feed_mngr.create_feed(pk_admin, sk_admin)
+        st = session_tree.create_session_tree(pk_admin, feed_mngr, {}, {}, config)
+        st.append_bytes(b'test', feed_mngr, config)
+        st.append_bytes(b'test', feed_mngr, config)
+        st.append_bytes(b'test', feed_mngr, config)
+        st.append_bytes(b'test', feed_mngr, config)
+        st.append_bytes(b'test', feed_mngr, config)
+        st.append_bytes(b'test', feed_mngr, config)
+        st.append_bytes(b'test', feed_mngr, config)
+        st.append_bytes(b'test', feed_mngr, config)
+        st.append_bytes(b'test', feed_mngr, config)
+        st.append_bytes(b'test', feed_mngr, config)
+        st.append_bytes(b'test', feed_mngr, config)
+        st.append_bytes(b'test', feed_mngr, config)
+        st.append_bytes(b'test', feed_mngr, config)
+        st.append_bytes(b'test', feed_mngr, config)
+        st.append_bytes(b'test', feed_mngr, config)
+        st.append_bytes(b'test', feed_mngr, config)
+        st.append_bytes(b'test', feed_mngr, config)
+        st.append_bytes(b'test', feed_mngr, config)
+        st.append_bytes(b'test', feed_mngr, config)
+        st.append_bytes(b'test', feed_mngr, config)
+        st.append_bytes(b'test', feed_mngr, config)
+        print(st.__str__(feed_mngr))
+        return
         for i in range(0, 3):
             # sk, _ = pure25519.create_keypair()
             # sk, pk = sk.sk_s[:32], sk.vk_s
