@@ -18,6 +18,7 @@ from config import Config
 import feed_forest
 import fork_tree
 import session_tree
+import dmx_fltr
 
 os.system("rm -rf data")
 
@@ -76,31 +77,33 @@ for c in configs.values():
         
     # create admin feed and three child nodes (subtrees)
     else:
+        dmx = dmx_fltr.DMXFilter
+        want = {}
         f = feed_mngr.create_feed(c['feed_id'], c['secret'])
 
         ct = None
         st = session_tree.create_session_tree(c['feed_id'], feed_mngr, {}, {}, c)
-        st.append_bytes(b'test', feed_mngr, c)
-        st.append_bytes(b'test', feed_mngr, c)
-        st.append_bytes(b'test', feed_mngr, c)
-        st.append_bytes(b'test', feed_mngr, c)
-        st.append_bytes(b'test', feed_mngr, c)
-        st.append_bytes(b'test', feed_mngr, c)
-        st.append_bytes(b'test', feed_mngr, c)
-        st.append_bytes(b'test', feed_mngr, c)
-        st.append_bytes(b'test', feed_mngr, c)
-        st.append_bytes(b'test', feed_mngr, c)
-        st.append_bytes(b'test', feed_mngr, c)
-        st.append_bytes(b'test', feed_mngr, c)
-        st.append_bytes(b'test', feed_mngr, c)
-        st.append_bytes(b'test', feed_mngr, c)
-        st.append_bytes(b'test', feed_mngr, c)
-        st.append_bytes(b'test', feed_mngr, c)
-        st.append_bytes(b'test', feed_mngr, c)
-        st.append_bytes(b'test', feed_mngr, c)
-        st.append_bytes(b'test', feed_mngr, c)
-        st.append_bytes(b'test', feed_mngr, c)
-        st.append_bytes(b'test', feed_mngr, c)
+        st.append_bytes(b'test', feed_mngr, dmx, want, c)
+        st.append_bytes(b'test', feed_mngr, dmx, want, c)
+        st.append_bytes(b'test', feed_mngr, dmx, want, c)
+        st.append_bytes(b'test', feed_mngr, dmx, want, c)
+        st.append_bytes(b'test', feed_mngr, dmx, want, c)
+        st.append_bytes(b'test', feed_mngr, dmx, want, c)
+        st.append_bytes(b'test', feed_mngr, dmx, want, c)
+        st.append_bytes(b'test', feed_mngr, dmx, want, c)
+        st.append_bytes(b'test', feed_mngr, dmx, want, c)
+        st.append_bytes(b'test', feed_mngr, dmx, want, c)
+        st.append_bytes(b'test', feed_mngr, dmx, want, c)
+        st.append_bytes(b'test', feed_mngr, dmx, want, c)
+        st.append_bytes(b'test', feed_mngr, dmx, want, c)
+        st.append_bytes(b'test', feed_mngr, dmx, want, c)
+        st.append_bytes(b'test', feed_mngr, dmx, want, c)
+        st.append_bytes(b'test', feed_mngr, dmx, want, c)
+        st.append_bytes(b'test', feed_mngr, dmx, want, c)
+        st.append_bytes(b'test', feed_mngr, dmx, want, c)
+        st.append_bytes(b'test', feed_mngr, dmx, want, c)
+        st.append_bytes(b'test', feed_mngr, dmx, want, c)
+        st.append_bytes(b'test', feed_mngr, dmx, want, c)
         print(st.__str__(feed_mngr))
 
         """

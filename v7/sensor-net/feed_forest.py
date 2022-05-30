@@ -8,17 +8,21 @@ class FeedForest:
     def __init__(self, feed_mngr, dmx_fltr, want_fltr, conf):
         self.trees = {}
 
-        for feed in feed_mngr.feeds:
-            # find ID feeds and add as tree to tree dict
-            # ID feeds are the only feeds that are not child and not continuation
-            if not feed.get_prev() and not feed.get_parent():
-                # print(ssb_util.to_hex(feed.fid))
-                # self.trees[ssb_util.to_hex(feed.fid)] = feed
-                self.trees[ssb_util.to_hex(feed.fid)] = (self.load_subtrees(feed,
-                                                         feed_mngr,
-                                                         dmx_fltr,
-                                                         want_fltr,
-                                                         conf))
+        # for feed in feed_mngr.feeds:
+        #     # find ID feeds and add as tree to tree dict
+        #     # ID feeds are the only feeds that are not child and not continuation
+        #     if not feed.get_prev() and not feed.get_parent():
+        #         # print(ssb_util.to_hex(feed.fid))
+        #         # self.trees[ssb_util.to_hex(feed.fid)] = feed
+        # TODO: check for peer id feeds
+        feed = feed_mngr.get_feed(conf['admin'])
+        if feed != None:
+            self.trees[ssb_util.to_hex(feed.fid)] = self.load_subtrees(feed,
+                                                     feed_mngr,
+                                                     dmx_fltr,
+                                                     want_fltr,
+                                                     conf)
+
     
     def load_subtrees(self, feed, feed_mngr, dmx_fltr, want_fltr, conf):
         subtrees = []
@@ -50,6 +54,7 @@ class FeedForest:
                                                     self.is_owner,
                                                     self.is_critical)
                 subtrees.append(st)
+        return subtrees
 
     def add_subtree(self, subtree):
         self.trees[ssb_util.to_hex(subtree.root_fid)] = subtree

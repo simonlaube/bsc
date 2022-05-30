@@ -1,490 +1,574 @@
-import hashlib
-import os
-import sys
-from .packet import Blob
-from .packet import Packet
-from .packet import PacketType
-from .packet import create_chain
-from .packet import pkt_from_bytes
-from .ssb_util import from_var_int
-from .ssb_util import is_file
-from .ssb_util import to_hex
+from .packet import (
+    APPLYUP,
+    CHAIN20,
+    CONTDAS,
+    ISCHILD,
+    ISCONTN,
+    MKCHILD,
+    PACKET,
+    PKT_PREFIX,
+    PLAIN48,
+    UPDFILE,
+    WIRE_PACKET,
+    create_apply_pkt,
+    create_chain,
+    create_child_pkt,
+    create_contn_pkt,
+    create_end_pkt,
+    create_parent_pkt,
+    create_upd_pkt,
+    from_var_int,
+    new_packet,
+    pkt_from_wire,
+)
+from sys import implementation, platform
+from ubinascii import hexlify
+from uctypes import (
+    ARRAY,
+    BIG_ENDIAN,
+    UINT32,
+    UINT8,
+    addressof,
+    bytearray_at,
+    sizeof,
+    struct,
+)
+from uhashlib import sha256
+from uos import ilistdir, mkdir, stat
 
 
-# non-micropython import
-if sys.implementation.name != "micropython":
-    # Optional type annotations are ignored in micropython
-    from typing import Optional
-    from typing import List
-    from typing import Tuple
+# helps debugging in vim
+if implementation.name != "micropython":
+    from typing import Optional, List, Tuple, Union
 
-class Feed:
-    """
-    Represents a .log file.
-    Used to get/append data from/to feeds.
-    """
-    def __init__(self, file_name: str, skey: Optional[bytes] = None):
-        self.file_name = file_name
-        self.skey = skey
 
-        # read .log content
-        f = open(self.file_name, "rb")
-        header = f.read(128)
+pycom = False
+if platform in ("FiPy", "LoPy"):
+    pycom = True
+    from os import listdir as oslistdir
+
+
+FEED = {
+    "reserved": (0 | ARRAY, 12 | UINT8),
+    "fid": (12 | ARRAY, 32 | UINT8),
+    "parent_fid": (44 | ARRAY, 32 | UINT8),
+    "parent_seq": 76 | UINT32,
+    "anchor_seq": 80 | UINT32,
+    "anchor_mid": (84 | ARRAY, 20 | UINT8),
+    "front_seq": 104 | UINT32,
+    "front_mid": (108 | ARRAY, 20 | UINT8),
+}
+
+
+# basic feed functions
+# ------------------------------------------------------------------------------
+
+
+get_log_fn = lambda fid: "_feeds/{}.log".format(hexlify(fid).decode())
+get_header_fn = lambda fid: "_feeds/{}.head".format(hexlify(fid).decode())
+
+
+# this has to be changed for pycom
+
+
+def get_feed(fid: bytearray) -> struct[FEED]:
+    # reserve memory for header
+    feed_header = bytearray(128)
+    # read file
+    f = open(get_header_fn(fid), "rb")
+    feed_header[:] = f.read(128)
+    f.close()
+
+    # create struct
+    feed = struct(addressof(feed_header), FEED, BIG_ENDIAN)
+    return feed
+
+
+def create_feed(
+    fid: bytearray,
+    trusted_seq: int = 0,
+    trusted_mid: Optional[bytearray] = None,
+    parent_seq: int = 0,
+    parent_fid: bytearray = bytearray(32),
+) -> struct[FEED]:
+    if trusted_mid is None:
+        trusted_mid = fid[:20]  # tinyssb convention
+
+    assert len(fid) == 32
+    assert len(trusted_mid) == 20
+    assert len(parent_fid) == 32
+
+    # create header
+    feed = struct(addressof(bytearray(sizeof(FEED))), FEED, BIG_ENDIAN)
+    feed.fid[:] = fid
+    feed.parent_fid[:] = parent_fid
+    feed.parent_seq = parent_seq
+    feed.anchor_seq = trusted_seq
+    feed.anchor_mid[:] = trusted_mid
+    feed.front_seq = trusted_seq
+    feed.front_mid[:] = fid[:20]  # tinyssb convention
+
+    save_header(feed)
+    return feed
+
+
+def create_child_feed(
+    parent_feed: struct[FEED],
+    parent_key: bytearray,
+    child_fid: bytearray,
+    child_key: bytearray,
+) -> struct[FEED]:
+    parent_seq = (parent_feed.front_seq + 1).to_bytes(4, "big")
+    parent_pkt = create_parent_pkt(
+        parent_feed.fid,
+        parent_seq,
+        parent_feed.front_mid,
+        child_fid,
+        parent_key,
+    )
+
+    child_feed = create_feed(
+        child_fid, parent_seq=parent_feed.front_seq + 1, parent_fid=parent_feed.fid
+    )
+
+    child_payload = bytearray(48)
+    child_payload[:32] = parent_feed.fid
+    child_payload[32:36] = parent_seq
+    child_payload[36:] = sha256(
+        bytearray_at(addressof(parent_pkt.wire[0]), sizeof(WIRE_PACKET))
+    ).digest()[:12]
+
+    child_pkt = create_child_pkt(child_fid, child_payload, child_key)
+
+    # append both
+    append_packet(child_feed, child_pkt)
+    append_packet(parent_feed, parent_pkt)
+    return child_feed
+
+
+def create_contn_feed(
+    ending_feed: struct[FEED],
+    ending_key: bytearray,
+    contn_fid: bytearray,
+    contn_key: bytearray,
+) -> struct[FEED]:
+    ending_seq = (ending_feed.front_seq + 1).to_bytes(4, "big")
+    ending_pkt = create_end_pkt(
+        ending_feed.fid,
+        ending_seq,
+        ending_feed.front_mid,
+        contn_fid,
+        ending_key,
+    )
+
+    cont_feed = create_feed(
+        contn_fid, parent_fid=ending_feed.fid, parent_seq=ending_feed.front_seq + 1
+    )
+
+    cont_payload = bytearray(48)
+    cont_payload[:32] = ending_feed.fid
+    cont_payload[32:36] = ending_seq
+    cont_payload[36:] = sha256(
+        bytearray_at(addressof(ending_pkt.wire[0]), sizeof(WIRE_PACKET))
+    ).digest()[:12]
+
+    contn_pkt = create_contn_pkt(contn_fid, cont_payload, contn_key)
+
+    append_packet(cont_feed, contn_pkt)
+    append_packet(ending_feed, ending_pkt)
+    return cont_feed
+
+
+def get_wire(feed: struct[FEED], i: int) -> bytearray:
+    # transform negative indices
+    if i < 0:
+        i = feed.front_seq + i + 1
+
+    # check if index is valid
+    anchor_seq = feed.anchor_seq
+    if i > feed.front_seq or i <= anchor_seq:
+        raise IndexError
+
+    # get wire packet
+    relative_i = i - anchor_seq
+    del anchor_seq
+    wire_array = bytearray(128)
+    f = open(get_log_fn(feed.fid), "rb")
+    f.seek(128 * (relative_i - 1))  # -1 because header is in separate file
+    wire_array[:] = f.read(128)
+    f.close()
+
+    return wire_array
+
+
+def get_payload(feed: struct[FEED], i: int) -> bytearray:
+    wire_array = get_wire(feed, i)
+
+    # maybe direct array access instead?
+    wpkt = struct(addressof(wire_array), WIRE_PACKET, BIG_ENDIAN)
+    if wpkt.type != CHAIN20.to_bytes(1, "big"):
+        return wpkt.payload
+
+    # unwrap chain
+    # get length
+    content_size, num_bytes = from_var_int(wpkt.payload)
+    if content_size <= 27:
+        return wpkt.payload[1 : 1 + content_size]
+    content_array = bytearray(content_size)
+    current_i = 28 - num_bytes
+    content_array[:current_i] = wpkt.payload[num_bytes:-20]
+
+    ptr = wpkt.payload[-20:]
+    del wpkt
+
+    null_ptr = bytearray(20)
+    while ptr != null_ptr:
+        hex_ptr = hexlify(ptr).decode()
+        file_name = "_blobs/{}/{}".format(hex_ptr[:2], hex_ptr[2:])
+        blob_array = bytearray(128)
+        f = open(file_name, "rb")
+        blob_array[:] = f.read(128)
+        f.close()
+        del file_name
+        ptr = blob_array[108:]
+
+        # fill in and get next pointer
+        if ptr == null_ptr:
+            content_array[current_i:] = blob_array[8 : content_size - current_i + 8]
+        else:
+            content_array[current_i : current_i + 100] = blob_array[8:108]
+            current_i += 100
+        del blob_array
+
+    return content_array
+
+
+def save_header(feed: struct[FEED]) -> None:
+    f = open(get_header_fn(feed.fid), "wb")
+    f.write(bytearray_at(addressof(feed), sizeof(FEED)))
+    f.close()
+
+
+def append_packet(feed: struct[FEED], pkt: struct[PACKET]) -> None:
+    # TODO: check if feed has ended?
+    f = open(get_log_fn(feed.fid), "ab")
+    f.seek(0, 2)  # move to end of file
+    f.write(bytearray_at(addressof(pkt.wire[0]), sizeof(WIRE_PACKET)))
+    f.close()
+
+    # update header
+    feed.front_mid[:] = pkt.mid
+    del pkt
+    feed.front_seq += 1
+    save_header(feed)
+
+
+def append_bytes(feed: struct[FEED], payload: bytearray, key: bytearray) -> None:
+    payload_len = len(payload)
+    assert payload_len <= 48
+
+    if payload_len < 48:
+        # pad content to 48B
+        padded_payload = bytearray(48)
+        padded_payload[:payload_len] = payload
+        del payload
+        payload = padded_payload
+        del padded_payload
+
+    pkt_type = PLAIN48.to_bytes(1, "big")
+    seq = (feed.front_seq + 1).to_bytes(4, "big")
+    pkt = new_packet(
+        feed.fid,
+        seq,
+        feed.front_mid,
+        payload,
+        pkt_type,
+        key,
+    )
+    append_packet(feed, pkt)
+
+
+def append_blob(feed: struct[FEED], payload: bytearray, key: bytearray) -> None:
+    pkt, blobs = create_chain(
+        feed.fid, feed.front_seq.to_bytes(4, "big"), feed.front_mid, payload, key
+    )
+
+    ptr = hexlify(pkt.wire[0].payload[-20:]).decode()
+    # save blob files
+    for blob in blobs:
+        dir_name = ptr[:2]
+        file_name = ptr[2:]
+        del ptr
+
+        if dir_name not in listdir("_blobs"):
+            mkdir("_blobs/{}".format(dir_name))
+
+        # write blob
+        f = open("_blobs/{}/{}".format(dir_name, file_name), "wb")
+        f.write(bytearray_at(addressof(blob), sizeof(blob)))
         f.close()
 
-        # reserved = header[:12]
-        self.fid = header[12:44]
-        self.parent_id = header[44:76]
-        self.parent_seq = int.from_bytes(header[76:80], "big")
-        self.anchor_seq = int.from_bytes(header[80:84], "big")
-        self.anchor_mid = header[84:104]
-        self.front_seq = int.from_bytes(header[104:108], "big")
-        self.front_mid = header[108:128]
+        # get next ptr
+        ptr = hexlify(blob.pointer).decode()
 
-    def __str__(self) -> str:
-        title = to_hex(self.fid[:8]) + "..." # only first 8B
-        length = self.front_seq - self.anchor_seq
-        seperator = ("+-----" * (length + 1)) + "+"
-        numbers = "   {}  ".format(self.anchor_seq)
-        feed = "| HDR |"
-        for i in range(self.anchor_seq + 1, self.front_seq + 1):
-            numbers += "   {}  ".format(i)
-            pkt_type = self.get_type(i)
-            if pkt_type == PacketType.plain48:
-                feed += " P48 |"
-            if pkt_type == PacketType.chain20:
-                feed += " C20 |"
-            if pkt_type == PacketType.ischild:
-                feed += " ICH |"
-            if pkt_type == PacketType.iscontn:
-                feed += " ICN |"
-            if pkt_type == PacketType.mkchild:
-                feed += " MKC |"
-            if pkt_type == PacketType.contdas:
-                feed += " CTD |"
-            if pkt_type == PacketType.mk_fork_tree:
-                feed += " TCO |"
-            if pkt_type == PacketType.mk_session_tree:
-                feed += " TSE |"
-            if pkt_type == PacketType.fork:
-                ptr = to_hex(self.get(i)[4:36][:1])
-                pos = int.from_bytes(self.get(i)[0:4], 'big')
-                feed += " " + ptr + "@" + str(pos) + "|"
+    del blobs
+    assert ptr == "0000000000000000000000000000000000000000"
+    # append packet to feed
+    append_packet(feed, pkt)
 
-        return "\n".join([title, numbers, seperator, feed, seperator])
 
-    def __len__(self) -> int:
-        return self.front_seq
+def verify_and_append_bytes(feed: struct[FEED], wpkt: bytearray) -> bool:
+    pkt = pkt_from_wire(
+        feed.fid, feed.front_seq.to_bytes(4, "big"), feed.front_mid, wpkt
+    )
 
-    def __getitem__(self, seq: int) -> bytes:
-        """
-        Returns the payload of the packet with the corresponding
-        sequence number.
-        Negative indices access the feed starting from the end.
-        The packet is NOT verified before the payload is returned.
-        Also returns full blobs, without verifying.
-        """
-        pkt_wire = self.get_wire(seq)
+    if pkt is None:
+        print("verification of packet failed")
+        return False
 
-        # dmx = pkt_wire[:7]
-        pkt_type = pkt_wire[7:8]
-        payload = pkt_wire[8:56]
+    append_packet(feed, pkt)
+    return True
 
-        # check if regular packet or blob
-        if pkt_type != PacketType.chain20:
-            return payload
 
-        # blob chain
-        content_size, num_bytes = from_var_int(payload)
-        content = payload[num_bytes:-20]
+def get_parent(feed: struct[FEED]) -> Optional[bytearray]:
+    if feed.anchor_seq != 0 or feed.front_seq < 1:
+        return None
+    wire = get_wire(feed, 1)
 
-        # "unwrap" chain
-        ptr = payload[-20:]
-        while ptr != bytes(20):
-            blob = self._get_blob(ptr)
-            assert blob is not None, "failed to get full blob chain"
-            ptr = blob.ptr
-            content += blob.payload
-
-        return content[:content_size]
-
-    def get_wire(self, seq: int) -> bytes:
-        """
-        Returns the wire format of the packet with given sequence number.
-        """
-        # transform negative indices
-        if seq < 0:
-            seq = self.front_seq + seq + 1  # access last pkt through -1 etc.
-
-        # handle invalid indices
-        if (seq > self.front_seq or
-            seq <= self.anchor_seq):
-            raise IndexError
-
-        # get packet wire
-        relative_i = seq - self.anchor_seq  # if seq of first packet is not 1
-        f = open(self.file_name, "rb")
-        f.seek(128 * relative_i)
-        pkt_wire = f.read(128)[8:]  # cut off reserved 8B
-        f.close()
-
-        return pkt_wire
-
-    def get_type(self, seq: int) -> Optional[bytes]:
-        """
-        Returns the type of the packet with given index.
-        Bytes can be compared with PacketTypes.
-        """
-        pkt_wire = self.get_wire(seq)
-        pkt_type = pkt_wire[7:8]
-
-        if PacketType.is_type(pkt_type):
-            return pkt_type
+    # check type
+    if wire[15:16] != ISCHILD.to_bytes(1, "big"):
         return None
 
-    def __iter__(self):
-        self._n = self.anchor_seq
-        return self
+    # return parent fid
+    return wire[16:48]
 
-    def __next__(self) -> bytes:
-        self._n += 1
-        if self._n > self.front_seq:
-            raise StopIteration
 
-        payload = self[self._n]
-        return payload
+def get_children(
+    feed: struct[FEED], index: bool = False
+) -> Union[List[bytearray], List[Tuple[bytearray, int]]]:
+    # has to iterate over entire feed, avoid
+    children = []
+    mk_child = MKCHILD.to_bytes(1, "big")
+    for i in range(feed.anchor_seq + 1, feed.front_seq + 1):
+        wpkt = get_wire(feed, i)
+        if wpkt[15:16] == mk_child:
+            if index:
+                children.append((wpkt[16:48], i))
+            else:
+                children.append(wpkt[16:48])
 
-    def get(self, i: int) -> bytes:
-        """
-        Returns Packet instance with corresponding sequence number in feed.
-        Identical to __getitem__.
-        """
-        return self[i]
+    return children
 
-    def _update_header(self) -> None:
-        """
-        Updates the front sequence number and message ID in the .log file
-        with the current values of this Feed instance.
-        """
-        assert type(self.front_mid) is bytes, "front packet is not signed"
-        new_info = self.front_seq.to_bytes(4, "big") + self.front_mid
-        assert len(new_info) == 24, "new front seq and mid must be 24B"
 
-        # go to beginning of file + 104B (where front seq and mid are)
-        # this is not ideal, since the whole file has to be copied to memory
-        # this is due to some weird behaviour of micropython on Pycom devices
-        # TODO: is there a better solution?
-        f = open(self.file_name, "rb+")
-        f.seek(0)
-        file_content = f.read()
-        updated_content = file_content[:104] + new_info + file_content[128:]
-        f.seek(0)
-        f.write(updated_content)
-        f.close()
+def get_contn(feed: struct[FEED]) -> Optional[bytearray]:
+    if feed.front_seq < 1:
+        return None
 
-    def append_pkt(self, pkt: Packet) -> bool:
-        """
-        Appends given packet to .log file and updates
-        front sequence number and message ID.
-        Returns 'True' on success.
-        If the feed has ended, nothing is appended and
-        False is returned.
-        """
-        # TODO: Fix this. check if ended without stackoverflow
-        # if self.has_ended():
-        #     print("cannot append to finished feed")
-        #     return False
+    wpkt = get_wire(feed, -1)
+    if wpkt[15:16] == CONTDAS.to_bytes(1, "big"):
+        return wpkt[16:48]
 
-        # go to end of buffer and write
-        assert pkt.wire is not None, "packet must be signed before appending"
-        payload = bytes(8) + pkt.wire  # add reserved 8B
-        assert len(payload) == 128, "wire pkt must be 128B"
+    return None
 
-        f = open(self.file_name, "rb+")
-        f.seek(0, 2)
-        f.write(payload)
-        f.close()
 
-        # update header info
-        self.front_seq += 1
-        self.front_mid = pkt.mid
-        self._update_header()
-        return pkt
+def get_prev(feed: struct[FEED]) -> Optional[bytearray]:
+    if feed.anchor_seq != 0:
+        return None
 
-    def append_bytes(self, payload: bytes) -> bool:
-        """
-        Creates a regular packet containing the given payload
-        and appends it to the feed.
-        Returns 'True' on success.
-        If the feed has ended, nothing is appended and
-        'False' is returned.
-        """
-        next_seq = self.front_seq + 1
+    wpkt = get_wire(feed, 1)
+    if wpkt[15:16] == ISCONTN.to_bytes(1, "big"):
+        return wpkt[16:48]
 
-        assert self.front_mid is not None, "front packet must be signed"
-        assert self.skey is not None, "can only append if signing key known"
+    return None
 
-        pkt = Packet(self.fid, next_seq.to_bytes(4, "big"),
-                     self.front_mid, payload, skey=self.skey)
 
-        if pkt is None:
-            return None
+def get_next_dmx(feed: struct[FEED]) -> bytearray:
+    dmx = bytearray(64)
+    dmx[:8] = PKT_PREFIX
+    dmx[8:40] = feed.fid
+    dmx[40:44] = (feed.front_seq + 1).to_bytes(4, "big")
+    dmx[44:64] = feed.front_mid
+    return sha256(dmx).digest()[:7]
 
-        return self.append_pkt(pkt)
 
-    def verify_and_append_bytes(self, pkt_wire: bytes) -> bool:
-        """
-        Creates a new packet from the raw bytes and attempts to validate it.
-        Uses the feed_id as the validation key.
-        If the packet does not validate, False is returned.
-        """
-        seq = (self.front_seq + 1).to_bytes(4, "big")
-        assert self.front_mid is not None, "front packet must be signed"
+def waiting_for_blob(feed: struct[FEED]) -> Optional[bytearray]:
+    if feed.front_seq < 1:
+        return None
 
-        pkt = pkt_from_bytes(self.fid, seq, self.front_mid, pkt_wire)
+    # check front packet
+    wpkt = get_wire(feed, -1)
+    if wpkt[15:16] != CHAIN20.to_bytes(1, "BIG"):
+        return None
 
-        if pkt is None:
-            return False
+    ptr = wpkt[44:64]
+    null_ptr = bytearray(20)
+    while ptr != null_ptr:
+        hex_ptr = hexlify(ptr).decode()
+        file_name = "_blobs/{}/{}".format(hex_ptr[:2], hex_ptr[2:])
 
-        return self.append_pkt(pkt)
-
-    def append_blob(self, payload: bytes) -> bool:
-        """
-        Creates a blob from the provided payload.
-        A packet of type 'chain20' is appended to the feed,
-        referring to the blob files (in _blob directory).
-        If the feed has ended, nothing is appended and
-        False is returned.
-        """
-        next_seq = (self.front_seq + 1).to_bytes(4, "big")
-
-        assert self.front_mid is not None
-        assert self.skey is not None, "can only append if signing key is known"
-
-        pkt, blobs = create_chain(self.fid, next_seq, self.front_mid,
-                                  payload, self.skey)
-
-        if pkt is None:
-            return False
-
-        self.append_pkt(pkt)
-        return self._write_blob(blobs)
-
-    def _write_blob(self, blobs: List[Blob]) -> bool:
-        """
-        Takes a list of Blob instances and saves them
-        as blob files, as defined in tiny-ssb protocol.
-        Returns 'True' on success.
-        """
-        # get path of _blobs folder
-        split = self.file_name.split("/")
-        path = "/".join(split[:-2]) + "/_blobs/"
-
-        # first two bytes of hash are the name of the subdirectory
-        # ab23e5g... -> _blobs/ab/23e5g...
-        for blob in blobs:
-            hash_hex = to_hex(blob.signature)
-            dir_path = path + hash_hex[:2]
-            file_name = dir_path + "/" + hash_hex[2:]
-            if not is_file(dir_path):
-                os.mkdir(dir_path)
-            try:
-                f = open(file_name, "wb")
-                f.write(blob.wire)
-                f.close()
-            except Exception as e:
-                print(e)
-                return False
-        return True
-
-    def _get_blob(self, ptr: bytes) -> Optional[Blob]:
-        """
-        Creates and returns a Blob instance of the
-        blob file that the given pointer is pointing to.
-        """
-        # get path of _blobs folder
-        hex_hash = to_hex(ptr)
-        split = self.file_name.split("/")
-        # first two bytes of hash are the name of the subdirectory
-        # ab23e5g... -> _blobs/ab/23e5g...
-        file_name = "/".join(split[:-2]) + "/_blobs/" + hex_hash[:2]
-        file_name += "/" + hex_hash[2:]
-
+        # check if file exists
         try:
+            blob = bytearray(128)
             f = open(file_name, "rb")
-            content = f.read(120)
+            blob[:] = f.read(128)
             f.close()
         except Exception:
-            return None
+            # does not exist yet, return pointer
+            del blob
+            return ptr
 
-        assert len(content) == 120, "blob must be 120B"
-        return Blob(content[:100], content[100:])
+        ptr[:] = blob[-20:]
+        del blob
 
-    def get_blob_chain(self, pkt: Packet) -> Optional[bytes]:
-        """
-        Retrieves the full data that a 'chain20' packet is pointing to.
-        The content is validated.
-        If validation fails, 'None' is returned.
-        """
-        assert pkt.pkt_type == PacketType.chain20, "pkt type must be chain20"
+    return None
 
-        blobs = []
-        ptr = pkt.payload[-20:]
-        while ptr != bytes(20):
-            blob = self._get_blob(ptr)
-            assert blob is not None, "chaining of blobs failed"
-            ptr = blob.ptr
-            blobs.append(blob)
 
-        return self._verify_chain(pkt, blobs)
+def verify_and_append_blob(feed: struct[FEED], blob: bytearray) -> bool:
+    assert len(blob) == 128
+    # TODO: maybe skip check if already done by dmx check when receiving?
+    blob_hash = sha256(blob[8:]).digest()[:20]
+    if blob_hash != waiting_for_blob(feed):
+        # not waiting for this blob
+        return False
 
-    def _verify_chain(self,
-                      head: Packet,
-                      blobs: List[Blob]) -> Optional[bytes]:
-        """
-        Verifies the authenticity of a given blob chain.
-        If it is valid, the content is returned as bytes.
-        """
-        content_len, num_bytes = from_var_int(head.payload)
-        ptr = head.payload[-20:]
-        content = head.payload[num_bytes:-20]
+    # save blob file
+    hex_blob = hexlify(blob_hash).digest()
+    file_name = "_blobs/{}/{}".format(hex_blob[:2], hex_blob[2:])
+    f = open(file_name, "wb")
+    f.write(blob)
+    f.close()
+    return True
 
-        for blob in blobs:
-            if ptr != blob.signature:
-                return None
-            content += blob.payload
-            ptr = blob.ptr
 
-        return content[:content_len]
+def get_want(feed: struct[FEED]) -> bytearray:
+    want_dmx = bytearray(7)
+    want_dmx[:] = sha256(feed.fid + b"want").digest()[:7]
 
-    def has_ended(self) -> bool:
-        """
-        Returns 'True' if this Feed instance was ended by a 'contdas' packet.
-        """
-        if len(self) < 1:
-            return False
-        return self.get_type(-1) == PacketType.contdas
+    # check whether blob or packet is missing
+    # TODO: this could be inefficient for long blob chains
+    blob_ptr = waiting_for_blob(feed)
+    if blob_ptr is None:
+        # packet missing
+        want = bytearray(43)
+        want[:7] = want_dmx
+        want[7:39] = feed.fid
+        want[39:] = (feed.front_seq + 1).to_bytes(4, "big")
+        return want
+    else:
+        want = bytearray(63)
+        want[:7] = want_dmx
+        want[7:39] = feed.fid
+        want[39:43] = feed.front_seq.to_bytes(4, "big")
+        want[43:] = blob_ptr
+        return want
 
-    def get_parent(self) -> Optional[bytes]:
-        """
-        Returns the feed ID of this feed's parent feed.
-        If this is not a child feed, 'None' is returned.
-        """
-        # TODO: this can be improved, since the packet is read twice
-        if self.anchor_seq != 0:
-            return None
-        if self.front_seq == 0:
-            return None
-        if self.get_type(1) != PacketType.ischild:
-            return None
 
-        # parent fid == first 32B of payload in first pkt
-        return self[1][:32]
+def add_upd(
+    feed: struct[FEED], file_name: str, key: bytearray, v_number: int = 0
+) -> None:
+    seq = bytearray(feed.front_seq.to_bytes(4, "big"))
+    pkt = create_upd_pkt(
+        feed.fid,
+        seq,
+        feed.front_mid,
+        bytearray(file_name.encode()),
+        bytearray(v_number.to_bytes(4, "big")),
+        key,
+    )
+    append_packet(feed, pkt)
 
-    def get_children(self) -> list[bytes]:
-        """
-        Returns a list of all child feed IDs contained
-        within this feed.
-        """
-        children = []
-        for i in range(self.anchor_seq + 1, self.front_seq + 1):
-            # TODO: this can be improved, since the packet is read twice
-            if self.get_type(i) == PacketType.mkchild:
-                children.append(self[i][:32])
 
-        return children
-
-    def get_contn(self) -> Optional[bytes]:
-        """
-        Returns the feed ID of this feed's continuation feed.
-        If this feed has not ended, 'None' is returned.
-        """
-        if len(self) < 1:
-            return None
-
-        if self.get_type(-1) == PacketType.contdas:
-            return self[-1][:32]
-        else:
-            return None
-
-    def get_prev(self) -> Optional[bytes]:
-        """
-        Returns the feed ID of this feed's predecessor feed.
-        If this feed does not have a predecessor, 'None' is returned.
-        """
-        if self.anchor_seq != 0:
-            return None
-        if self.front_seq == 0:
-            return None
-        if self.get_type(1) == PacketType.iscontn:
-            return self[1][:32]
-        else:
-            return None
-
-    def get_front(self) -> Tuple[int, bytes]:
-        """
-        Returns this feed's front sequence number and front message ID
-        in a tuple.
-        """
-        assert self.front_mid is not None
-        return (self.front_seq, self.front_mid)
-
-    def get_next_dmx(self) -> Optional[bytes]:
-        """
-        Computes the dmx value of the next expected packet.
-        """
-        assert self.front_mid is not None, "no front message ID found"
-        next_seq = (self.front_seq + 1).to_bytes(4, "big")
-        next = Packet.prefix + self.fid + next_seq + self.front_mid
-        return hashlib.sha256(next).digest()[:7]
-
-    def waiting_for_blob(self) -> Optional[bytes]:
-        """
-        Checks whether this Feed instance is waiting for missing blobs.
-        If it is not waiting None is returned.
-        If it is waiting, the pointer to the missing blob is returned.
-        """
-        if len(self) < 1:
-            return None
-
-        if self.get_type(-1) != PacketType.chain20:
-            return None
-
-        # front packet is blob, check if complete
-        ptr = self.get_wire(-1)[36:56]  # 8:56 -> payload, last 20 bytes ptr
-        if ptr == bytes(20):
-            # self-contained blob
-            return None
-
-        while ptr != bytes(20):
-            try:
-                blob = self._get_blob(ptr)
-                assert blob is not None
-                ptr = blob.ptr
-            except Exception:
-                return ptr
-
+def get_upd(feed: struct[FEED]) -> Optional[Tuple[str, int]]:
+    # assumes that the upp packet is at position 2 in the feed!
+    wpkt = get_wire(feed, 2)
+    # check type
+    if wpkt[15:16] != UPDFILE.to_bytes(1, "big"):
         return None
 
-    def verify_and_append_blob(self, blob_wire: bytes) -> bool:
-        assert len(blob_wire) == 120, "blobs must be 120B"
-        blob = Blob(blob_wire[:-20], blob_wire[-20:])
+    # extract info
+    fn_len, n_bytes = from_var_int(wpkt[16:64])  # payload
+    offset = 16 + n_bytes
+    offset2 = offset + fn_len
+    file_name = wpkt[offset:offset2].decode()
+    del offset
+    v_num = int.from_bytes(wpkt[offset2 : offset2 + 4], "big")
+    del offset2
 
-        # check if blob is missing
-        if self.waiting_for_blob() != blob.signature:
-            return False
+    return file_name, v_num
 
-        # append
-        return self._write_blob([blob])
 
-    def get_want(self) -> bytes:
-        want_dmx = hashlib.sha256(self.fid + b"want").digest()[:7]
-        # test: blob dmx
-        blob_ptr = self.waiting_for_blob()
+def add_apply(
+    feed: struct[FEED], file_fid: bytearray, v_num: int, key: bytearray
+) -> None:
+    seq = (feed.front_seq + 1).to_bytes(4, "big")
+    pkt = create_apply_pkt(
+        feed.fid,
+        seq,
+        feed.front_mid,
+        file_fid,
+        bytearray(v_num.to_bytes(4, "big")),
+        key,
+    )
+    append_packet(feed, pkt)
 
-        if blob_ptr is None:
-            next_seq = (self.front_seq + 1).to_bytes(4, "big")
-            return want_dmx + self.fid + next_seq
+
+def get_newest_apply(feed: struct[FEED], file_fid: bytearray) -> Optional[int]:
+    # TODO: can this be improved? Naïve iterating over feed...
+    applyup = APPLYUP.to_bytes(1, "big")
+    for i in range(feed.front_seq, feed.anchor_seq, -1):
+        wpkt = get_wire(feed, i)
+        if wpkt[15:16] == applyup:
+            if wpkt[16:48] == bytes(file_fid):
+                return int.from_bytes(wpkt[48:52], "big")
+        del wpkt
+
+    return None
+
+
+def length(feed: struct[FEED]) -> int:
+    length = (
+        stat("".join(["_feeds/", hexlify(bytes(feed.fid)).decode(), ".log"]))[6] // 128
+    )
+    assert type(length) is int
+    return length
+
+
+# less relevant functions
+# ------------------------------------------------------------------------------
+
+
+def to_string(feed: struct[FEED]) -> str:
+    anchor_seq = feed.anchor_seq
+    front_seq = feed.front_seq
+    title = "".join([hexlify(feed.fid).decode()[:8], "..."])
+    length = front_seq - anchor_seq
+    separator = "".join([("+-----" * (length + 1)), "+"])
+    numbers = "   {}  ".format(anchor_seq)
+    feed_str = "| HDR |"
+
+    for i in range(anchor_seq + 1, front_seq + 1):
+        if i < 10:
+            numbers = "".join([numbers, "   {}  ".format(i)])
         else:
-            next_seq = self.front_seq.to_bytes(4, "big")
-            return want_dmx + self.fid + next_seq + blob_ptr
+            numbers = "".join([numbers, "  {}  ".format(i)])
+
+        pkt_type = int.from_bytes(get_wire(feed, i)[15:16], "big")
+
+        if pkt_type == PLAIN48:
+            feed_str = "".join([feed_str, " P48 |"])
+        if pkt_type == CHAIN20:
+            feed_str = "".join([feed_str, " C20 |"])
+        if pkt_type == ISCHILD:
+            feed_str = "".join([feed_str, " ICH |"])
+        if pkt_type == ISCONTN:
+            feed_str = "".join([feed_str, " ICN |"])
+        if pkt_type == MKCHILD:
+            feed_str = "".join([feed_str, " MKC |"])
+        if pkt_type == CONTDAS:
+            feed_str = "".join([feed_str, " CTD |"])
+        if pkt_type == UPDFILE:
+            feed_str = "".join([feed_str, " UPD |"])
+        if pkt_type == APPLYUP:
+            feed_str = "".join([feed_str, " APP |"])
+
+    return "\n".join([title, numbers, separator, feed_str, separator])

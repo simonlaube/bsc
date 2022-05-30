@@ -18,6 +18,10 @@ if sys.implementation.name != "micropython":
     from typing import List
     from typing import Tuple
 
+def rgb(r, g, b):
+    return "\u001b[38;2;" + r + ";" + g + ";" + b + "m"
+    # return f"\u001b[38;2;{r};{g};{b}m"
+
 class Feed:
     """
     Represents a .log file.
@@ -40,6 +44,57 @@ class Feed:
         self.anchor_mid = header[84:104]
         self.front_seq = int.from_bytes(header[104:108], "big")
         self.front_mid = header[108:128]
+
+    def get_col(self, seq, is_curr, i):
+        if seq == -1:
+            return rgb(150, 150, 150)
+        elif seq == i and is_curr:
+            return rgb(100, 250, 100)
+        elif seq == i:
+            return rgb(180, 180, 100)
+        elif seq > i:
+            return rgb(200, 255, 190)
+        else:
+            return rgb(150, 150, 150)
+        
+    def demo_print(self, seq, is_curr) -> str:
+        title = rgb(200, 204, 210) + to_hex(self.fid[:8]) + "..." # only first 8B
+        length = self.front_seq - self.anchor_seq
+        # seperator = ("+-----" * (length + 1)) + "+"
+        col = self.get_col(seq, is_curr, 0)
+        seperator = col + "+-----"
+        numbers = col + "   {}  ".format(self.anchor_seq)
+        feed = col + "| HDR |"
+        for i in range(self.anchor_seq + 1, self.front_seq + 1):
+            col = self.get_col(seq, is_curr, i)
+            seperator += col + "+-----"
+            numbers += col + "   {}  ".format(i)
+            feed += col
+            pkt_type = self.get_type(i)
+            if pkt_type == PacketType.plain48:
+                feed += " P48 |"
+            if pkt_type == PacketType.chain20:
+                feed += " C20 |"
+            if pkt_type == PacketType.ischild:
+                feed += " ICH |"
+            if pkt_type == PacketType.iscontn:
+                feed += " ICN |"
+            if pkt_type == PacketType.mkchild:
+                feed += " MKC |"
+            if pkt_type == PacketType.contdas:
+                feed += " CTD |"
+            if pkt_type == PacketType.mk_fork_tree:
+                feed += " TCO |"
+            if pkt_type == PacketType.mk_session_tree:
+                feed += " TSE |"
+            if pkt_type == PacketType.fork:
+                ptr = to_hex(self.get(i)[4:36][:1])
+                pos = int.from_bytes(self.get(i)[0:4], 'big')
+                feed += " " + ptr + "@" + str(pos) + "|"
+
+        seperator += '+'
+          
+        return "\n".join([title, numbers, seperator, feed, seperator])
 
     def __str__(self) -> str:
         title = to_hex(self.fid[:8]) + "..." # only first 8B

@@ -32,6 +32,7 @@ class FeedManager:
         self.keys = keys
         self.feed_dir = self.path + "_feeds"
         self.blob_dir = self.path + "_blobs"
+        self.tree_dir = self.path + "_trees"
         self._check_dirs()
         self.feeds = self._get_feeds()
 
@@ -51,6 +52,34 @@ class FeedManager:
             os.mkdir(self.feed_dir)
         if not is_file(self.blob_dir):
             os.mkdir(self.blob_dir)
+        if not is_file(self.tree_dir):
+            os.mkdir(self.tree_dir)
+    
+    def load_tree_cache(self, root_fid):
+        files = os.listdir(self.tree_dir)
+        for fn in files:
+            if fn.split('.')[-2] == to_hex(root_fid):
+                with open(self.tree_dir + '/' + fn, 'r') as f:
+                    cache = f.read().split('\n')
+                    f.close()
+                    return cache
+        with open(self.tree_dir + '/' + to_hex(root_fid) + '.cache', 'w') as f:
+            f.close()
+            return ''
+    
+    def append_to_tree_cache(self, root_fid, fid):
+        with open(self.tree_dir + '/' + to_hex(root_fid) + '.cache', 'a') as f:
+            f.write(to_hex(fid) + '\n')
+            f.close()
+
+    def delete_from(self, pos, fid):
+        if fid not in [f.fid for f in self.feeds]:
+            return
+        if pos == 0:
+            self.feeds.remove(self.get_feed(fid))
+            return
+        if pos >= 0:
+            pass
 
     def _get_feeds(self) -> list[Feed]:
         """

@@ -1,313 +1,346 @@
-import os
-import sys
-from .feed import Feed
-from .packet import create_child_pkt
-from .packet import create_contn_pkt
-from .packet import create_end_pkt
-from .packet import create_parent_pkt
-from .packet import create_tree_pkt
-from .packet import PacketType
-from .ssb_util import from_hex
-from .ssb_util import is_file
-from .ssb_util import to_hex
+from .feed import (
+    FEED,
+    append_blob,
+    append_bytes,
+    create_feed,
+    get_children,
+    get_feed,
+    get_next_dmx,
+    get_parent,
+    get_want,
+    get_wire,
+    to_string,
+    verify_and_append_blob,
+    verify_and_append_bytes,
+    waiting_for_blob,
+)
+from .packet import CONTDAS, MKCHILD, WIRE_PACKET
+from .util import listdir
+from _thread import allocate_lock
+from json import dumps, loads
+from os import mkdir
+from pure25519 import create_keypair
+from sys import implementation
+from ubinascii import unhexlify, hexlify
+from uctypes import struct, addressof, BIG_ENDIAN
+from uhashlib import sha256
 
-# non-micropython import
-if sys.implementation.name != "micropython":
-    # Optional type annotations are ignored in micropython
-    from typing import Optional
-    from typing import Union
-    from typing import Dict
+
+# helps debugging in vim
+if implementation.name != "micropython":
+    from typing import Dict, Tuple, List, Callable, Optional, Union
 
 
 class FeedManager:
-    """
-    Manages and creates Feed instances.
-    The path can be specified in the constructor with path="path".
-    Also takes a dictionary with feed IDs as keys, leading to their
-    corresponding signing keys.
-    If no dictionary is provided, an empty one is created.
-    """
-    def __init__(self, path: str = "", keys: Dict[str, str] = {}):
-        self.path = path
-        self.keys = keys
-        self.feed_dir = self.path + "_feeds"
-        self.blob_dir = self.path + "_blobs"
-        self._check_dirs()
-        self.feeds = self._get_feeds()
 
-    def __len__(self):
-        return len(self.feeds)
+    __slots__ = (
+        "keys",
+        "fids",
+        "dmx_lock",
+        "dmx_table",
+        "_callback",
+    )
 
-    def __getitem__(self, i: int) -> Feed:
-        return self.feeds[i]
+    def __init__(self) -> None:
+        self.keys = {}
+        self._create_dirs()
+        self._load_config()
+        self.fids = self.listfids()
 
-    def _check_dirs(self):
-        """
-        Checks whether the _feeds and _blobs directories already exist.
-        If not, new directories are created.
-        """
-        # TODO: recursive creation of directories in subdirectories
-        if not is_file(self.feed_dir):
-            os.mkdir(self.feed_dir)
-        if not is_file(self.blob_dir):
-            os.mkdir(self.blob_dir)
+        # dmx and callbacks
+        self.dmx_lock = allocate_lock()
+        self.dmx_table = {}
+        self._fill_dmx()
+        self._callback = {}
 
-    def _get_feeds(self) -> list[Feed]:
-        """
-        Reads all .log files in the self.feed_dir directory.
-        Returns a list containing all corresponding Feed instances.
-        """
-        feeds = []
-        files = os.listdir(self.feed_dir)
-        for f in files:
-            if f.endswith(".log"):
-                skey = self._get_skey(f)
-                feeds.append(Feed(self.feed_dir + "/" + f, skey=skey))
+    def _create_dirs(self) -> None:
+        feeds = "_feeds"
+        blobs = "_blobs"
+        if feeds not in listdir():
+            mkdir(feeds)
+        del feeds
 
-        return feeds
+        if blobs not in listdir():
+            mkdir(blobs)
+        del blobs
 
-    def _get_skey(self, fn: str) -> Optional[bytes]:
-        """
-        Checks whether the given file name has an associated signing key
-        in the self.keys dictionary.
-        """
-        fid = fn.split(".")[0]
-        try:
-            return from_hex(self.keys[fid])
-        except Exception:
-            return None
-
-    def get_feed(self, fid: Union[bytes, str]) -> Optional[Feed]:
-        """
-        Searches for a specific Feed instance in self.feeds.
-        The feed ID can be handed in as bytes, a hex string
-        or a file name.
-        Returns 'None' if the feed cannot be found.
-        """
-        # transform to bytes
-        if type(fid) is str:
-            if fid.endswith(".log"):
-                fid = fid[:-4]
-            fid = from_hex(fid)
-
-        # search
-        for feed in self.feeds:
-            if feed.fid == fid:
-                return feed
-
-        return None
-
-    def create_feed(self,
-                    fid: Union[bytes, str],
-                    skey: Union[bytes, str, None] = None,
-                    trusted_seq: Union[int, bytes] = 0,
-                    trusted_mid: Optional[bytes] = None,
-                    parent_seq: Union[int, bytes] = 0,
-                    parent_fid: bytes = bytes(32)) -> Optional[Feed]:
-        """
-        Creates a new Feed instance and adds it to self.feeds.
-        The signing key, trusted sequence number, trusted message ID,
-        parent sequence number and parent feed ID can be explicitly defined.
-        If no signing key is provided, it is not possible to sign new packets.
-        -> only received (already signed) packets can be appended.
-        Returns the newly created Feed instance.
-        """
-        # convert fid and skey to bytes, if necessary
-        if type(fid) is str:
-            fid = from_hex(fid)
-        assert type(fid) is bytes, "fid string to bytes conversion failed"
-
-        if type(skey) is str:
-            skey = from_hex(skey)
-        assert (skey is None or
-                type(skey) is bytes), "skey string to bytes conversion failed"
-
-        if trusted_mid is None:
-            trusted_mid = fid[:20]  # tinyssb convention, self-signed
-
-        # int to bytes conversion (if needed)
-        if type(trusted_seq) is int:
-            trusted_seq = trusted_seq.to_bytes(4, "big")
-        if type(parent_seq) is int:
-            parent_seq = parent_seq.to_bytes(4, "big")
-        if trusted_mid is None:
-            trusted_mid = bytes(20)
-
-        assert type(trusted_seq) is bytes, "int conversion failed"
-        assert type(parent_seq) is bytes, "int conversion failed"
-
-        # check lengths
-        assert len(fid) == 32, "fid must be 32b"
-        assert len(trusted_seq) == 4, "trusted seq must be 4b"
-        assert len(trusted_mid) == 20, "trusted mid must be 20b"
-        assert len(parent_seq) == 4, "parent seq must be 4b"
-        assert len(parent_fid) == 32, "parent_fid must be 32b"
-
-        # create log file
-        file_name = self.feed_dir + "/" + to_hex(fid) + ".log"
-        if is_file(file_name):
-            return None
-
-        # build header of feed
-        header = bytes(12) + fid + parent_fid + parent_seq
-        header += trusted_seq + trusted_mid
-        header += trusted_seq + fid[:20]  # self-signed
-        assert len(header) == 128, "header must be 128b"
-
-        # create new log file
-        f = open(file_name, "wb")
-        f.write(header)
+    def _save_config(self) -> None:
+        f = open("fm_config.json", "w")
+        f.write(
+            dumps(
+                {hexlify(k).decode(): hexlify(v).decode() for k, v in self.keys.items()}
+            )
+        )
         f.close()
 
-        feed = Feed(file_name, skey=skey)
-        self.feeds.append(feed)
-        if type(skey) is bytes:
-            # add skey to dict if given
-            self.keys[to_hex(fid)] = to_hex(skey)
-        return feed
+    def _load_config(self) -> None:
+        file_name = "fm_config.json"
+        if file_name not in listdir():
+            return
 
-    def create_child_feed(self,
-                          parent_fid: Union[bytes, Feed],
-                          child_fid: bytes,
-                          child_skey: bytes) -> Optional[Feed]:
-        """
-        Creates and returns a new child Feed instance for the given parent.
-        The parent can be passed either as a Feed instance, feed ID bytes,
-        feed ID hex string or file name.
-        The child feed ID must be explicitly defined.
-        The signing key must be provided.
-        """
-        parent = None
-        # feed conversion
-        if type(parent_fid) is Feed:
-            parent = parent_fid
-        if type(parent_fid) is bytes:
-            parent = self.get_feed(parent_fid)
+        f = open(file_name)
+        str_dict = loads(f.read())
+        self.keys = {
+            unhexlify(k.encode()): unhexlify(v.encode()) for k, v in str_dict.items()
+        }
+        f.close()
 
-        # check properties of parent
-        if (parent is None or
-            parent.skey is None or
-            parent.front_mid is None):
+    def update_keys(self, keys: Dict[bytes, bytes]) -> None:
+        self.keys = keys
+        self._save_config()
+
+    def generate_keypair(self, save_keys: bool = True) -> Tuple[bytearray, bytearray]:
+        key, _ = create_keypair()
+        skey = key.sk_s[:32]
+        vkey = key.vk_s
+        del key
+        if save_keys:
+            self.keys[vkey] = skey
+            self._save_config()
+        return bytearray(skey), bytearray(vkey)
+
+    def listfids(self) -> List[bytearray]:
+        is_feed = lambda fn: fn.endswith(".head")
+        fn2bytes = lambda fn: bytearray(unhexlify(fn[:-5].encode()))
+        return list(map(fn2bytes, list(filter(is_feed, listdir("_feeds")))))
+
+    def __str__(self) -> str:
+        # not very optimized for pycom
+        string_builder = []
+        for fid in self.fids:
+            feed = get_feed(fid)
+            if get_parent(feed):
+                continue
+            else:
+                string_builder.append(to_string(feed))
+
+            # add children below
+            children = [(x, y, 0) for x, y in get_children(feed, index=True)]
+            while children:
+                child, index, offset = children.pop(0)
+                assert type(child) is bytearray
+                child_feed = get_feed(child)
+                child_str = to_string(child_feed)
+
+                # adjust padding
+                padding_len = index - feed.anchor_seq + offset
+                padding = "      " * padding_len
+                child_str = "\n".join(
+                    ["".join([padding, s]) for s in child_str.split("\n")]
+                )
+                string_builder.append(child_str)
+
+                # check for child of child
+                child_children = get_children(child_feed, index=True)
+                del child_feed
+                child_children = [(x, y, padding_len) for x, y in child_children]
+                del padding_len
+                children = child_children + children
+
+        return "\n".join(string_builder)
+
+    def __len__(self):
+        return len(self.fids)
+
+    def __getitem__(self, i: int) -> bytearray:
+        return self.fids[i]
+
+    def _fill_dmx(self) -> None:
+        with self.dmx_lock:
+            for fid in self.fids:
+                feed = get_feed(fid)
+                want = get_want(feed)
+                self.dmx_table[bytes(want)] = (self.handle_want, fid)
+
+                blob_ptr = waiting_for_blob(feed)
+                if blob_ptr:
+                    self.dmx_table[bytes(blob_ptr)] = (self.handle_blob, fid)
+                else:
+                    self.dmx_table[bytes(get_next_dmx(feed))] = (
+                        self.handle_packet,
+                        fid,
+                    )
+
+    def get_key(self, fid: bytearray) -> Optional[bytearray]:
+        b_fid = bytes(fid)
+        with self.dmx_lock:
+            if b_fid not in self.keys:
+                return None
+            return self.keys[b_fid]
+
+    def consult_dmx(
+        self, msg: bytearray
+    ) -> Optional[Tuple[Callable[[bytearray, bytearray], None], bytearray]]:
+        b_msg = bytes(msg)
+        with self.dmx_lock:
+            if b_msg not in self.dmx_table:
+                return None
+            return self.dmx_table[b_msg]
+
+    def handle_want(self, fid: bytearray, request: bytearray) -> Optional[bytearray]:
+        req_feed = get_feed(fid)
+        req_seq = int.from_bytes(request[39:43], "big")
+        # check seq number
+        if req_feed.front_seq < req_seq:
             return None
 
-        # add child info to parent
-        parent_seq = (parent.front_seq + 1).to_bytes(4, "big")
-        parent_pkt = create_parent_pkt(parent.fid, parent_seq,
-                                       parent.front_mid, child_fid,
-                                       parent.skey)
+        req_wire = bytearray(128)
+        if len(request) == 43:
+            # packet
+            req_wire[:] = get_wire(req_feed, req_seq)
+        else:
+            # blob
+            blob_ptr = request[-20:]
+            try:
+                f = open("_blobs/{}".format(hexlify(blob_ptr).decode()), "rb")
+                req_wire[:] = f.read(128)
+                f.close()
+            except Exception:
+                return None  # blob not found
 
-        assert parent_pkt.wire is not None, "failed to sign packet"
+        return req_wire
 
-        # create child feed
-        child_payload = parent_pkt.fid + parent_pkt.seq
-        child_payload += parent_pkt.wire[-12:]
-        child_feed = self.create_feed(child_fid,
-                                      skey=child_skey,
-                                      parent_fid=parent.fid,
-                                      parent_seq=parent.front_seq)
-        assert child_feed is not None, "failed to create child feed"
+    def handle_packet(self, fid: bytearray, wire: bytearray) -> None:
+        feed = get_feed(fid)
+        wpkt = struct(addressof(wire), WIRE_PACKET, BIG_ENDIAN)
+        if not verify_and_append_bytes(feed, wire):
+            return
 
-        child_pkt = create_child_pkt(child_feed.fid, child_payload, child_skey)
+        next_dmx = get_next_dmx(feed)
 
-        # finally add packets
-        child_feed.append_pkt(child_pkt)
-        parent.append_pkt(parent_pkt)
-        return child_feed
-
-    def create_contn_feed(self,
-                          end_fid: Union[bytes, Feed],
-                          contn_fid: bytes,
-                          contn_skey: bytes) -> Optional[Feed]:
-        """
-        Ends the given feed and returns a new continuation Feed instance.
-        The ending feed can be passed either as a Feed instance, feed ID bytes,
-        feed ID hex string or file name.
-        The continuation feed ID must be explicitly defined and
-        the signing key must be provided.
-        """
-        ending_feed = None
-        # feed conversion
-        if type(end_fid) is Feed:
-            ending_feed = end_fid
-        if type(end_fid) is bytes:
-            ending_feed = self.get_feed(end_fid)
-
-        # check properties of ending feed
-        if (ending_feed is None
-            or ending_feed.front_mid is None
-            or ending_feed.skey is None):
+        blob_ptr = waiting_for_blob(feed)
+        if next_dmx == wpkt.dmx and blob_ptr is None:
+            # nothing was appended
             return None
 
-        end_seq = (ending_feed.front_seq + 1).to_bytes(4, "big")
-        end_pkt = create_end_pkt(ending_feed.fid, end_seq,
-                                 ending_feed.front_mid, contn_fid,
-                                 ending_feed.skey)
+        # update dmx value
+        with self.dmx_lock:
+            del self.dmx_table[wpkt.dmx]
+            if blob_ptr is None:
+                self.dmx_table[next_dmx] = self.handle_packet, fid
+            else:
+                self.dmx_table[blob_ptr] = self.handle_blob, fid
+                return
 
-        assert end_pkt.wire is not None, "failed to sign ending packet"
+        # check for continuation or child feed
+        front_wire = get_wire(feed, -1)
+        if front_wire[15:16] in [
+            CONTDAS.to_bytes(1, "big"),
+            MKCHILD.to_bytes(1, "big"),
+        ]:
+            create_feed(front_wire[16:48], parent_seq=feed.front_seq, parent_fid=fid)
 
-        # create continuing feed
-        contn_payload = end_pkt.fid + end_pkt.seq
-        contn_payload += end_pkt.wire[-12:]
-        contn_feed = self.create_feed(contn_fid,
-                                      skey=contn_skey,
-                                      parent_fid=ending_feed.fid,
-                                      parent_seq=ending_feed.front_seq)
-        assert contn_feed is not None, "failed to create continuation feed"
+        # callbacks
+        if fid in self._callback:
+            for function in self._callback[fid]:
+                function(fid)
 
-        contn_pkt = create_contn_pkt(contn_feed.fid, contn_payload, contn_skey)
+    def handle_blob(self, fid: bytearray, blob: bytearray) -> None:
+        feed = get_feed(fid)
 
-        # finally add packets
-        contn_feed.append_pkt(contn_pkt)
-        ending_feed.append_pkt(end_pkt)
-        return contn_feed
+        if not verify_and_append_blob(feed, blob):
+            return
 
-    def create_tree_root_feed(self,
-                        parent_fid: Union[bytes, Feed],
-                        child_fid: bytes,
-                        child_skey: bytes,
-                        pkt_type: PacketType) -> Optional[Feed]:
-        """
-        Creates and returns a new child Feed instance for the given parent.
-        The parent can be passed either as a Feed instance, feed ID bytes,
-        feed ID hex string or file name.
-        The child feed ID must be explicitly defined.
-        The signing key must be provided.
-        """
-        parent = None
-        # feed conversion
-        if type(parent_fid) is Feed:
-            parent = parent_fid
-        if type(parent_fid) is bytes:
-            parent = self.get_feed(parent_fid)
+        signature = sha256(blob[8:]).digest()[:20]
 
-        # check properties of parent
-        if (parent is None or
-            parent.skey is None or
-            parent.front_mid is None):
-            return None
+        with self.dmx_lock:
+            del self.dmx_table[signature]
 
-        # add child info to parent
-        parent_seq = (parent.front_seq + 1).to_bytes(4, "big")
-        parent_pkt = create_tree_pkt(parent.fid, parent_seq,
-                                        parent.front_mid, child_fid,
-                                        parent.skey, pkt_type)
-        if parent_pkt == None:
-            return None
+        next_ptr = waiting_for_blob(feed)
+        if not next_ptr:
+            with self.dmx_lock:
+                self.dmx_table[get_next_dmx(feed)] = self.handle_packet, fid
 
-        assert parent_pkt.wire is not None, "failed to sign packet"
+                if fid in self._callback:
+                    for function in self._callback[fid]:
+                        function(fid)
 
-        # create child feed
-        child_payload = parent_pkt.fid + parent_pkt.seq
-        child_payload += parent_pkt.wire[-12:]
-        child_feed = self.create_feed(child_fid,
-                                        skey=child_skey,
-                                        parent_fid=parent.fid,
-                                        parent_seq=parent.front_seq)
-        assert child_feed is not None, "failed to create child feed"
+                return
 
-        child_pkt = create_child_pkt(child_feed.fid, child_payload, child_skey)
+        with self.dmx_lock:
+            self.dmx_table[next_ptr] = self.handle_blob, fid
 
-        # finally add packets
-        child_feed.append_pkt(child_pkt)
-        parent.append_pkt(parent_pkt)
-        return child_feed
+    def register_callback(self, fid: bytearray, function) -> None:
+        b_fid = bytes(fid)
+        if b_fid not in self._callback:
+            self._callback[b_fid] = [function]
+        else:
+            self._callback[b_fid] = (self._callback[b_fid]).append(function)
+
+    def remove_callback(self, fid: bytearray, function) -> None:
+        b_fid = bytes(fid)
+        if b_fid not in self._callback:
+            return
+
+        functions = self._callback[b_fid]
+        if function in functions:
+            functions.remove(function)
+        self._callback[b_fid] = functions
+
+    def append_to_feed(
+        self, feed: Union[bytearray, struct[FEED]], payload: bytearray
+    ) -> bool:
+        try:
+            if type(feed) is bytearray:
+                feed = get_feed(feed)
+            append_bytes(feed, payload, self.keys[bytes(feed.fid)])
+            return True
+        except Exception:
+            print("key not in dictionary")
+            return False
+
+    def append_blob_to_feed(
+        self, feed: Union[bytearray, struct[FEED]], payload: bytearray
+    ) -> bool:
+        try:
+            if type(feed) is bytearray:
+                feed = get_feed(feed)
+
+            append_blob(feed, payload, self.keys[bytes(feed.fid)])
+            return True
+        except Exception:
+            print("key not in dictionary")
+            return False
+
+
+# ------------------------------------------------------------------------------
+
+
+def get_feed_overview() -> str:
+    # not very optimized for pycom
+    string_builder = []
+    is_feed = lambda fn: fn.endswith(".head")
+    fn2bytes = lambda fn: bytearray(unhexlify(fn[:-5].encode()))
+    fids = list(map(fn2bytes, list(filter(is_feed, listdir("_feeds")))))
+
+    for fid in fids:
+        feed = get_feed(fid)
+        if get_parent(feed):
+            continue
+        else:
+            string_builder.append(to_string(feed))
+
+        # add children below
+        children = [(x, y, 0) for x, y in get_children(feed, index=True)]
+        while children:
+            child, index, offset = children.pop(0)
+            assert type(child) is bytearray
+            child_feed = get_feed(child)
+            child_str = to_string(child_feed)
+
+            # adjust padding
+            padding_len = index - feed.anchor_seq + offset
+            padding = "      " * padding_len
+            child_str = "\n".join(
+                ["".join([padding, s]) for s in child_str.split("\n")]
+            )
+            string_builder.append(child_str)
+
+            # check for child of child
+            child_children = get_children(child_feed, index=True)
+            del child_feed
+            child_children = [(x, y, padding_len) for x, y in child_children]
+            del padding_len
+            children = child_children + children
+
+    return "\n".join(string_builder)

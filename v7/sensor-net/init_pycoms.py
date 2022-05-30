@@ -90,13 +90,6 @@ def create_files(config, admin = False):
             ct.append_bytes(b'lkjsdflkjsl')
             ct.fork_at(2, feed_mngr, config)
             ct.fork_at(0, feed_mngr, config)
-            # f = feed_mngr.create_child_feed(config['feed_id'], pk, sk)
-            # if f == None:
-                # print('child feed could not be created...')
-
-    # config = { k : hex(v) if type(v) == bytes else v for k, v in config.items() }
-    # with open(f"{pfx}/config.json", "w") as f:
-    #     json.dump(config, f)
 
 def get_random_name():
     return ''.join(random.choice(string.ascii_letters) for x in range(10))
@@ -109,27 +102,11 @@ def init_network_node():
     conf = Config(dest + name + '/data/')
     conf.new(name, pk_admin)
 
-    # config = {
-    #     'name' : name,
-    #     'feed_id' : pk,
-    #     'secret' : sk,
-    #     'admin' : pk_admin,
-    #     'child_feeds' : {}
-    # }
-
     create_files(conf)
     copy_source_code(dest + '/' + conf['name'])
     # TODO: Add node key to admin subfeed
 
 def init_admin_node():
-
-    # config = {
-    #     'name' : 'admin',
-    #     'feed_id' : from_hex(pk_admin),
-    #     'secret' : from_hex(sk_admin),
-    #     'admin' : pk_admin,
-    #     'child_feeds' : {}
-    # }
     conf = Config(dest + 'Admin/data/')
     conf.set('admin', pk_admin, sk_admin)
 
