@@ -1,0 +1,17 @@
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\contentsline {chapter}{Abstract}{ii}{chapter*.1}%
+\vspace {2em}
+\contentsline {chapter}{\chapternumberline {1}Introduction}{1}{chapter.3}%
+\contentsline {chapter}{\chapternumberline {2}Background}{3}{chapter.4}%
+\contentsline {section}{\numberline {2.1}Long Range (LoRa) Wireless Technology}{3}{section.5}%
+\contentsline {section}{\numberline {2.2}Comparing SSB and TinySSB}{4}{section.7}%
+\contentsline {subsection}{\numberline {2.2.1}SSB}{4}{subsection.8}%
+\contentsline {subsection}{\numberline {2.2.2}TinySSB}{4}{subsection.9}%
+\contentsline {section}{\numberline {2.3}Pycom 4}{4}{section.10}%
+\contentsline {section}{\numberline {2.4}Packages}{4}{section.11}%
+\contentsline {chapter}{\chapternumberline {3}Conclusion}{5}{chapter.12}%
+\vspace {2em}
+\contentsline {chapter}{Bibliography}{6}{appendix*.13}%
+\contentsline {appendix}{\chapternumberline {A}Appendix}{7}{appendix.14}%
+\vspace {2em}

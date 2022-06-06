@@ -31,115 +31,167 @@ print(text)
 
 # create key pairs of network nodes
 configs = {}
-# nodes[pk_admin] = {
-#     'name' : 'Admin',
-#     'feed_id' : pk_admin,
-#     'secret' : sk_admin,
-#     'admin' : pk_admin, # here admin anchor is personal key
-#     'child_feeds' : {}
-# }
 conf = Config('./data/Admin/')
 conf.new('Admin')
 pk_admin = conf['admin']
 configs[pk_admin] = conf
 
 for nm in ['NodeA', 'NodeB', 'NodeC']:
-    # sk, _ = pure25519.create_keypair()
-    # sk, pk = sk.sk_s[:32], sk.vk_s
-    # nodes[pk] = {
-    #     'name' : nm,
-    #     'feed_id' : pk,
-    #     'secret' : sk,
-    #     'admin' : pk_admin, # admin anchor is set here
-    #     'child_feeds' : {}
-    # }
     conf = Config('./data/' + nm + '/')
     conf.new(nm, pk_admin)
     print(conf['admin'])
     configs[conf['feed_id']] = conf
 
 # create config and log files for admin and all other nodes
-for c in configs.values():
-    pfx = './data/' + c['name']
-    print(pfx)
-    os.system(f"mkdir -p {pfx}/_blobs")
-    os.system(f"mkdir -p {pfx}/_feeds")
+def init_session():
+    for c in configs.values():
+        pfx = './data/' + c['name']
+        print(pfx)
+        os.system(f"mkdir -p {pfx}/_blobs")
+        os.system(f"mkdir -p {pfx}/_feeds")
 
-    # create logs
-    dict = { c['feed_id'] : c['secret'] }
-    feed_mngr = feed_manager.FeedManager(pfx + '/', dict)
+        # create logs
+        dict = { c['feed_id'] : c['secret'] }
+        feed_mngr = feed_manager.FeedManager(pfx + '/', dict)
 
-    # create feed and admin anchor for not admin nodes
-    if c['feed_id'] != c['admin']:
-        feed_mngr.create_feed(c['feed_id'], c['secret'])
-        # install admin trust anchor
-        feed_mngr.create_feed(c['admin'])
+        # create feed and admin anchor for not admin nodes
+        if c['feed_id'] != c['admin']:
+            feed_mngr.create_feed(c['feed_id'], c['secret'])
+            # install admin trust anchor
+            feed_mngr.create_feed(c['admin'])
         
-    # create admin feed and three child nodes (subtrees)
-    else:
-        dmx = dmx_fltr.DMXFilter
-        want = {}
-        f = feed_mngr.create_feed(c['feed_id'], c['secret'])
-
-        ct = None
-        st = session_tree.create_session_tree(c['feed_id'], feed_mngr, {}, {}, c)
-        st.append_bytes(b'test', feed_mngr, dmx, want, c)
-        st.append_bytes(b'test', feed_mngr, dmx, want, c)
-        st.append_bytes(b'test', feed_mngr, dmx, want, c)
-        st.append_bytes(b'test', feed_mngr, dmx, want, c)
-        st.append_bytes(b'test', feed_mngr, dmx, want, c)
-        st.append_bytes(b'test', feed_mngr, dmx, want, c)
-        st.append_bytes(b'test', feed_mngr, dmx, want, c)
-        st.append_bytes(b'test', feed_mngr, dmx, want, c)
-        st.append_bytes(b'test', feed_mngr, dmx, want, c)
-        st.append_bytes(b'test', feed_mngr, dmx, want, c)
-        st.append_bytes(b'test', feed_mngr, dmx, want, c)
-        st.append_bytes(b'test', feed_mngr, dmx, want, c)
-        st.append_bytes(b'test', feed_mngr, dmx, want, c)
-        st.append_bytes(b'test', feed_mngr, dmx, want, c)
-        st.append_bytes(b'test', feed_mngr, dmx, want, c)
-        st.append_bytes(b'test', feed_mngr, dmx, want, c)
-        st.append_bytes(b'test', feed_mngr, dmx, want, c)
-        st.append_bytes(b'test', feed_mngr, dmx, want, c)
-        st.append_bytes(b'test', feed_mngr, dmx, want, c)
-        st.append_bytes(b'test', feed_mngr, dmx, want, c)
-        st.append_bytes(b'test', feed_mngr, dmx, want, c)
-        print(st.__str__(feed_mngr))
-
-        """
-        for i in range(0, 3):
-
-            # f = feed_mngr.create_subtree_root_feed(n['feed_id'], pk, sk, packet.PacketType.mk_fork_tree)
-            sk, pk, ct = fork_tree.create_fork_tree(c['feed_id'], feed_mngr, {}, {}, c)
-        if ct:
-            print("subtree root feed created")
-        ct.append_blob(b'ljasdflkjasldkfjalskdjflaskjdf')
-        ct.append_bytes(b'hello')
-        ct.append_bytes(b'hello')
-        ct.append_bytes(b'hello')
-        if ct.fork_at(3, feed_mngr, c):
-            pass
-        if ct.fork_at(2, feed_mngr, c):
-            print('fork creation successful')
-        if ct.fork_at(1, feed_mngr, c):
-            print('fork creation successful')
-        if ct.fork_at(3, feed_mngr, c):
-            print('fork creation successful')
-        ct.append_bytes(b'lksdjf')
-        ct.append_bytes(b'lksdjf')
-        if ct.fork_at(2, feed_mngr, c):
-            print('fork creation successful')
+        # create admin feed and three child nodes (subtrees)
         else:
-            print('could not fork')
-        ct.fork_at(0, feed_mngr, c)
+            dmx = dmx_fltr.DMXFilter
+            want = {}
+            f = feed_mngr.create_feed(c['feed_id'], c['secret'])
 
-        print(ct)
-        """
+            ct = None
+            st = session_tree.create_session_tree(c['feed_id'], feed_mngr, {}, {}, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            st.append_bytes(b'test', feed_mngr, dmx, want, c)
+            print(st.__str__(feed_mngr))
 
-        # feed = feed_mngr.get_feed(n['feed_id'])
-        # feed.append_blob(bytes(500))
+def init_fork():
+    for c in configs.values():
+        pfx = './data/' + c['name']
+        print(pfx)
+        os.system(f"mkdir -p {pfx}/_blobs")
+        os.system(f"mkdir -p {pfx}/_feeds")
 
-    # list values of node in config, if values are in bytes -> hexlify
+        # create logs
+        dict = { c['feed_id'] : c['secret'] }
+        feed_mngr = feed_manager.FeedManager(pfx + '/', dict)
 
+        # create feed and admin anchor for not admin nodes
+        if c['feed_id'] != c['admin']:
+            feed_mngr.create_feed(c['feed_id'], c['secret'])
+            # install admin trust anchor
+            feed_mngr.create_feed(c['admin'])
+        
+        # create admin feed and three child nodes (subtrees)
+        else:
+            dmx = dmx_fltr.DMXFilter
+            want = {}
+            f = feed_mngr.create_feed(c['feed_id'], c['secret'])
 
+            ft = fork_tree.create_fork_tree(c['feed_id'], feed_mngr, {}, {}, c)
+            ft.append_bytes(b'hello')
+            ft.append_bytes(b'hello')
+            ft.append_bytes(b'hello')
+            ft.append_bytes(b'hello')
+            ft.append_bytes(b'hello')
+            ft.append_bytes(b'hello')
+            ft.append_bytes(b'hello')
+            ft.append_bytes(b'hello')
+            ft.append_bytes(b'hello')
+            ft.append_bytes(b'hello')
+            ft.append_bytes(b'hello')
+            ft.fork_at(8, feed_mngr, c)
+            ft.append_bytes(b'hello')
+            ft.append_bytes(b'hello')
+            ft.append_bytes(b'hello')
+            ft.append_bytes(b'hello')
+            ft.append_bytes(b'hello')
+            ft.append_bytes(b'hello')
+            ft.fork_at(6, feed_mngr, c)
+            ft.append_bytes(b'hello')
+            ft.append_bytes(b'hello')
+            ft.append_bytes(b'hello')
+            ft.append_bytes(b'hello')
+            ft.append_bytes(b'hello')
+            ft.append_bytes(b'hello')
+            ft.append_bytes(b'hello')
+            ft.append_bytes(b'hello')
+            ft.fork_at(9, feed_mngr, c)
+            ft.append_bytes(b'hello')
+            ft.append_bytes(b'hello')
+            print(ft)
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print('please provide arguments fork or session')    
+    elif sys.argv[1] == 'session':
+        init_session()
+    elif sys.argv[1] == 'fork':
+        init_fork()
 

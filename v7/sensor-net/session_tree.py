@@ -11,8 +11,8 @@ def _dmx(msg: bytes):
 
 class SessionTree:
 
-    def __init__(self, fid, feed_mngr, dmx_fltr, want_fltr, config, is_owner, is_critical):
-        self.max_length = 4 # this can be changed to much higher number
+    def __init__(self, fid, feed_mngr, dmx_fltr, want_fltr, config, is_owner, is_critical, l=6):
+        self.max_length = l # this can be changed to much higher number
         self.max_sessions_stored = 3
         self.root_fid = fid
         self.cache = feed_mngr.load_tree_cache(self.root_fid)
@@ -320,11 +320,11 @@ class SessionTree:
                 feed_mngr.delete_from(0, ssb_util.from_hex(fid))
             
 
-def create_session_tree(feed_id, feed_mngr, dmx_fltr, want_fltr, config):
+def create_session_tree(feed_id, feed_mngr, dmx_fltr, want_fltr, config, l=6):
     sk, pk = config.new_child_keypair(True)
     f = feed_mngr.create_tree_root_feed(ssb_util.from_hex(feed_id), pk, sk, packet.PacketType.mk_session_tree)
     
-    st = SessionTree(f.fid, feed_mngr, dmx_fltr, want_fltr, config, True, True)
+    st = SessionTree(f.fid, feed_mngr, dmx_fltr, want_fltr, config, True, True, l)
     return st
 
 def load_session_tree(fid, feed_mngr, dmx_fltr, want_fltr, config, is_owner, is_critical):

@@ -19,7 +19,7 @@ if sys.implementation.name != "micropython":
     from typing import Tuple
 
 def rgb(r, g, b):
-    return "\u001b[38;2;" + r + ";" + g + ";" + b + "m"
+    return "\u001b[38;2;" + str(r) + ";" + str(g) + ";" + str(b) + "m"
     # return f"\u001b[38;2;{r};{g};{b}m"
 
 class Feed:

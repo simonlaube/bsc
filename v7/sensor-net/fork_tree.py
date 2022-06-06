@@ -18,14 +18,80 @@ class ForkTree:
         # not to be confused with the front seq of a feed
         self.front_pos = -1
         self.load(feed_mngr, dmx_fltr, want_fltr, config)
+
+    def demo_print(self, dict, current_f, feed_mngr):
+        string = '\nForkTree: \n\n'
+        for i, f in enumerate(self.feeds):
+            seq = -1
+            if f.fid in dict.keys():
+                seq = dict[f.fid]
+            string += f.demo_print(seq, current_f == f) + '\n\n\n'
+        return string
     
     def __str__(self):
-        string = '/---------------------------------------------------'
-        string += '\nForkTree: \n\n'
+        string = '\n\nForkTree: \n\n'
         for i, f in enumerate(self.feeds):
-            string += f.__str__() + '\n\n'
-        string += '\---------------------------------------------------'
+            string += f.__str__() + '\n\n\n'
         return string
+
+    def load(self, feed_mngr, dmx_fltr, want_fltr, config):
+        """Loads the feeds, and front position from feeds. If cache file available,
+        use this to load tree."""
+        # TODO: Maybe check first if tree has ended and act appropriately
+        self.feeds = []
+        next_feed = feed_mngr.get_feed(self.root_fid)
+        if next_feed == None:
+            next_feed = feed_mngr.create_feed(self.root_fid)
+            print('root feed created because not yet in feed dir')
+        while next_feed != None:
+            # only add want if feed is own or or critical
+            self._add_want_fltr(next_feed.fid, want_fltr)
+            self.feeds.append(next_feed)
+            if len(next_feed) >= 2: # at least one payload pkt appended
+                next_fid = next_feed[2][:32] # get feed id of child feed (fork feed)
+                next_feed = feed_mngr.get_feed(next_fid)
+                continue
+            break
+        print(self)
+        self.load_dmx(dmx_fltr, feed_mngr)
+
+        if self._update_tree_validity(feed_mngr):
+            print('loaded fork tree ' + str(ssb_util.to_hex(self.root_fid)))
+        
+    def load_dmx(self, dmx_fltr, feed_mngr):
+        # Add to dmx front filters if not owner of tree
+        if self.is_owner:
+            return
+        cat = ssb_util.to_hex(self.root_fid)[:8] # category name for dmx of this tree
+        dmx_fltr.reset_category(cat)
+        if len(self.feeds) == 0:
+            print('error in loading dmx for fork tree')
+            return
+        if len(self.feeds) == 1:
+            dmx_fltr.append(cat, ssb_util.to_hex(self.feeds[-1].fid), self._next_dmx(self.feeds[-1]))
+        else:
+            if len(self.feeds[-1]) < 2: # last feed is emergency feed
+                dmx_fltr.append(cat, ssb_util.to_hex(self.feeds[-1].fid), self._next_dmx(self.feeds[-1]))
+                prev_feed = self.feeds[-2]
+            else: # last feed is not emergency feed
+                prev_feed = self.feeds[-1]
+            prev_seq = len(prev_feed) + 1 # guarantees feed will be appended to dmx
+            while prev_feed: # walk back fork path
+                # next_feed is not yet complete up until fork
+                if prev_seq > len(prev_feed):
+                    dmx_fltr.append(cat, ssb_util.to_hex(prev_feed.fid), self._next_dmx(prev_feed))
+
+                if len(prev_feed) > 2: # fork pkt exists
+                    pkt = prev_feed[3]
+                    prev_fid = pkt[4:36]
+                    prev_seq = int.from_bytes(pkt[:4], 'big')
+                    prev_feed = feed_mngr.get_feed(prev_fid)
+                    continue
+                if len(prev_feed) == 2: # no fork pkt exists
+                    break
+                print('error in tree structure')
+                break
+        # TODO: Later maybe load from cache file if available
     
     def _get_abs_pos(self, pos, feed_mngr):
         """Returns the feed and sequence number of given tree position."""
@@ -78,17 +144,18 @@ class ForkTree:
             pkt = feed.verify_and_append_bytes(buf)
         # pkt = self.verify_and_append_bytes(buf, feed_mngr.get_feed(fid))
 
+            print(self)
             if pkt:
                 if buf[7:8] == packet.PacketType.mkchild:
                     print('try create child')
                     # TODO: potential safety issue: if device crashes after append, no feed created
                     f = feed_mngr.create_feed(buf[8:40])
+                    self._add_want_fltr(f.fid, want_fltr)
                     self.feeds.append(f)
                     # TODO: remove front dmx of all feeds that are not needed anymore
                     print('emergency feed created')
                 # TODO: Optimize to not only update whole tree dmx
                 self.load_dmx(dmx_fltr, feed_mngr)
-                print(self)
 
                 if not self.is_valid or fid == self.feeds[-1]:
                     self._update_tree_validity(feed_mngr)
@@ -96,59 +163,6 @@ class ForkTree:
             return pkt
         return None
 
-    def load(self, feed_mngr, dmx_fltr, want_fltr, config):
-        """Loads the feeds, and front position from feeds. If cache file available,
-        use this to load tree."""
-        # TODO: Maybe check first if tree has ended and act appropriately
-        self.feeds = []
-        next_feed = feed_mngr.get_feed(self.root_fid)
-        if next_feed == None:
-            next_feed = feed_mngr.create_feed(self.root_fid)
-            print('root feed created because not yet in feed dir')
-        while next_feed != None:
-            # only add want if feed is own or or critical
-            if self.is_owner or self.is_critical:
-                want_fltr[ssb_util.to_hex(next_feed.fid)] = _dmx(next_feed.fid + b'want')
-            self.feeds.append(next_feed)
-            if len(next_feed) >= 2: # at least one payload pkt appended
-                next_fid = next_feed[2][:32] # get feed id of child feed (fork feed)
-                next_feed = feed_mngr.get_feed(next_fid)
-                continue
-            break
-        print(self)
-        self.load_dmx(dmx_fltr, feed_mngr)
-
-        if self._update_tree_validity(feed_mngr):
-            print('loaded fork tree ' + str(ssb_util.to_hex(self.root_fid)))
-        
-    def load_dmx(self, dmx_fltr, feed_mngr):
-        # Add to dmx front filters if not owner of tree
-        if self.is_owner:
-            return
-        cat = ssb_util.to_hex(self.root_fid)[:8] # category name for dmx of this tree
-        dmx_fltr.reset_category(cat)
-        if len(self.feeds) == 1:
-            dmx_fltr.append(cat, ssb_util.to_hex(self.feeds[-1].fid), self._next_dmx(self.feeds[-1]))
-        else:
-            if len(self.feeds[-1]) < 2: # last feed is emergency feed
-                dmx_fltr.append(cat, ssb_util.to_hex(self.feeds[-1].fid), self._next_dmx(self.feeds[-1]))
-                next_feed = self.feeds[-2]
-            else: # emergency feed already used
-                next_feed = self.feeds[-1]
-            next_seq = len(next_feed) + 1 # guarantees feed will be appended to dmx
-            while next_feed: # walk back fork path
-                # next_feed is not yet complete up until fork
-                if next_seq > len(next_feed):
-                    dmx_fltr.append(cat, ssb_util.to_hex(next_feed.fid), self._next_dmx(next_feed))
-
-                if len(next_feed) > 2: # fork pkt exists
-                    next_fid = next_feed[3][4:36]
-                    next_seq = int.from_bytes(next_feed[3][:4], 'big')
-                    next_feed = feed_mngr.get_feed(next_fid)
-                    continue
-                print('error in tree structure')
-                break
-        # TODO: Later maybe load from cache file if available
 
     def _next_dmx(self, feed):
         next_blob_ptr = feed.waiting_for_blob()
@@ -216,8 +230,12 @@ class ForkTree:
         self.feeds.append(next_emergency_feed) # update feed list
         self.front_pos = pos
         return True
+    
+    def _add_want_fltr(self, fid, want_fltr):
+        if self.is_owner or self.is_critical:
+            want_fltr[ssb_util.to_hex(fid)] = _dmx(fid + b'want')
    
-    def end_tree(self):
+    def _collect(self, feed_mngr):
         pass
 
     def clear_tree(self):
@@ -243,7 +261,7 @@ def create_fork_tree(feed_id, feed_mngr, dmx_fltr, want_fltr, config):
     seq, prev_mid = f.get_front()
     ct.feeds[-2].append_bytes(b'') 
 
-    return (sk, pk, ct)
+    return ct
 
 def load_fork_tree(fid, feed_mngr, dmx_fltr, want_fltr, config, is_owner, is_critical):
     """Creates root feed for fork feed after mk_fork_tree pkt

@@ -1,0 +1,40 @@
+\begin{thebibliography}{3}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Carlsson et~al.(2018)Carlsson, Kuzminykh, Franksson, and
+  Liljegren]{10.1007/978-3-030-01168-0_11}
+Anders Carlsson, Ievgeniia Kuzminykh, Robin Franksson, and Alexander Liljegren.
+\newblock Measuring a lora network: Performance, possibilities and limitations.
+\newblock In Olga Galinina, Sergey Andreev, Sergey Balandin, and Yevgeni
+  Koucheryavy, editors, \emph{Internet of Things, Smart Spaces, and Next
+  Generation Networks and Systems}, pages 116--128, Cham, 2018. Springer
+  International Publishing.
+\newblock ISBN 978-3-030-01168-0.
+
+\bibitem[Liando et~al.(2019)Liando, Gamage, Tengourtius, and
+  Li]{10.1145/3293534}
+Jansen~C. Liando, Amalinda Gamage, Agustinus~W. Tengourtius, and Mo~Li.
+\newblock Known and unknown facts of lora: Experiences from a large-scale
+  measurement study.
+\newblock \emph{ACM Trans. Sen. Netw.}, 15\penalty0 (2), feb 2019.
+\newblock ISSN 1550-4859.
+\newblock \doi{10.1145/3293534}.
+\newblock URL \url{https://doi.org/10.1145/3293534}.
+
+\bibitem[Tarr et~al.(2019)Tarr, Lavoie, Meyer, and
+  Tschudin]{10.1145/3357150.3357396}
+Dominic Tarr, Erick Lavoie, Aljoscha Meyer, and Christian Tschudin.
+\newblock Secure scuttlebutt: An identity-centric protocol for subjective and
+  decentralized applications.
+\newblock In \emph{Proceedings of the 6th ACM Conference on Information-Centric
+  Networking}, ICN '19, page 1–11, New York, NY, USA, 2019. Association for
+  Computing Machinery.
+\newblock ISBN 9781450369701.
+\newblock \doi{10.1145/3357150.3357396}.
+\newblock URL \url{https://doi.org/10.1145/3357150.3357396}.
+
+\end{thebibliography}
