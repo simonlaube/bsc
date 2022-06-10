@@ -45,51 +45,56 @@
 \newlabel{fig:chirps}{{\M@TitleReference {2.1}{A visualized lora packet transmission. Source:~\cite  {10.1145/3293534}}}{4}{A visualized lora packet transmission. Source:~\cite {10.1145/3293534}}{figure.6}{}}
 \newlabel{fig:chirps@cref}{{[figure][1][2]2.1}{[1][3][]4}}
 \@writefile{toc}{\contentsline {section}{\numberline {2.2}Overview of TinySSB}{4}{section.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.1}Signing and Verifying Packets}{4}{subsection.8}\protected@file@percent }
-\newlabel{sec:signing}{{\M@TitleReference {2.2.1}{Signing and Verifying Packets}}{4}{Signing and Verifying Packets}{subsection.8}{}}
-\newlabel{sec:signing@cref}{{[subsection][1][2,2]2.2.1}{[1][4][]4}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.2}{\ignorespaces Feed with the header block and three appended log entries. (P48 describes the standard packet type with 48 bytes payload)}}{4}{figure.9}\protected@file@percent }
-\newlabel{fig:feed}{{\M@TitleReference {2.2}{Feed with the header block and three appended log entries. (P48 describes the standard packet type with 48 bytes payload)}}{4}{Feed with the header block and three appended log entries. (P48 describes the standard packet type with 48 bytes payload)}{figure.9}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.1}Pure25519 Signature and Hash functions}{4}{subsection.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.2}Signing and Verifying Packets}{4}{subsection.9}\protected@file@percent }
+\newlabel{sec:signing}{{\M@TitleReference {2.2.2}{Signing and Verifying Packets}}{4}{Signing and Verifying Packets}{subsection.9}{}}
+\newlabel{sec:signing@cref}{{[subsection][2][2,2]2.2.2}{[1][4][]4}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.2}{\ignorespaces Feed with the header block and three appended log entries. (P48 describes the standard packet type with 48 bytes payload)}}{4}{figure.10}\protected@file@percent }
+\newlabel{fig:feed}{{\M@TitleReference {2.2}{Feed with the header block and three appended log entries. (P48 describes the standard packet type with 48 bytes payload)}}{4}{Feed with the header block and three appended log entries. (P48 describes the standard packet type with 48 bytes payload)}{figure.10}{}}
 \newlabel{fig:feed@cref}{{[figure][2][2]2.2}{[1][4][]4}}
-\citation{10.1145/3357150.3357396}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.3}{\ignorespaces Layout of two different packet types in TinySSB.}}{5}{figure.10}\protected@file@percent }
-\newlabel{fig:packets}{{\M@TitleReference {2.3}{Layout of two different packet types in TinySSB.}}{5}{Layout of two different packet types in TinySSB}{figure.10}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.3}{\ignorespaces Layout of two different packet types in TinySSB.}}{5}{figure.11}\protected@file@percent }
+\newlabel{fig:packets}{{\M@TitleReference {2.3}{Layout of two different packet types in TinySSB.}}{5}{Layout of two different packet types in TinySSB}{figure.11}{}}
 \newlabel{fig:packets@cref}{{[figure][3][2]2.3}{[1][5][]5}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.2}Sending Data through the Network}{5}{subsection.11}\protected@file@percent }
-\newlabel{sec:sending}{{\M@TitleReference {2.2.2}{Sending Data through the Network}}{5}{Sending Data through the Network}{subsection.11}{}}
-\newlabel{sec:sending@cref}{{[subsection][2][2,2]2.2.2}{[1][5][]5}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.3}Trust Anchors}{5}{subsection.13}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {2.4}{\ignorespaces The same feed forwarded over a series of three nodes. Node 1 is the feed owner and has already appended new packets that are not yet forwarded. Node 2 and 3 create their own replicas and try to catch up with Node 1. If Node 1 and 3 are geographically close enough, packets may even reach Node 3 directly from Node 1.}}{6}{figure.12}\protected@file@percent }
-\newlabel{fig:replication}{{\M@TitleReference {2.4}{The same feed forwarded over a series of three nodes. Node 1 is the feed owner and has already appended new packets that are not yet forwarded. Node 2 and 3 create their own replicas and try to catch up with Node 1. If Node 1 and 3 are geographically close enough, packets may even reach Node 3 directly from Node 1.}}{6}{The same feed forwarded over a series of three nodes. Node 1 is the feed owner and has already appended new packets that are not yet forwarded. Node 2 and 3 create their own replicas and try to catch up with Node 1. If Node 1 and 3 are geographically close enough, packets may even reach Node 3 directly from Node 1}{figure.12}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.3}Sending Data through the Network}{5}{subsection.12}\protected@file@percent }
+\newlabel{sec:sending}{{\M@TitleReference {2.2.3}{Sending Data through the Network}}{5}{Sending Data through the Network}{subsection.12}{}}
+\newlabel{sec:sending@cref}{{[subsection][3][2,2]2.2.3}{[1][5][]5}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.4}Trust Anchors}{5}{subsection.14}\protected@file@percent }
+\citation{10.1145/3357150.3357396}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.4}{\ignorespaces The same feed forwarded over a series of three nodes. Node 1 is the feed owner and has already appended new packets that are not yet forwarded. Node 2 and 3 create their own replicas and try to catch up with Node 1. If Node 1 and 3 are geographically close enough, packets may even reach Node 3 directly from Node 1.}}{6}{figure.13}\protected@file@percent }
+\newlabel{fig:replication}{{\M@TitleReference {2.4}{The same feed forwarded over a series of three nodes. Node 1 is the feed owner and has already appended new packets that are not yet forwarded. Node 2 and 3 create their own replicas and try to catch up with Node 1. If Node 1 and 3 are geographically close enough, packets may even reach Node 3 directly from Node 1.}}{6}{The same feed forwarded over a series of three nodes. Node 1 is the feed owner and has already appended new packets that are not yet forwarded. Node 2 and 3 create their own replicas and try to catch up with Node 1. If Node 1 and 3 are geographically close enough, packets may even reach Node 3 directly from Node 1}{figure.13}{}}
 \newlabel{fig:replication@cref}{{[figure][4][2]2.4}{[1][5][]6}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.4}Requesting Packets}{6}{subsection.15}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {2.5}{\ignorespaces Node 2 requests packet with seq. nr. 3. Node 1 returns the requested packet. Node 3 does not have the requested packet and therefore does not answer.}}{7}{figure.18}\protected@file@percent }
-\newlabel{fig:request}{{\M@TitleReference {2.5}{Node 2 requests packet with seq. nr. 3. Node 1 returns the requested packet. Node 3 does not have the requested packet and therefore does not answer.}}{7}{Node 2 requests packet with seq. nr. 3. Node 1 returns the requested packet. Node 3 does not have the requested packet and therefore does not answer}{figure.18}{}}
-\newlabel{fig:request@cref}{{[figure][5][2]2.5}{[1][6][]7}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.5}Creating Child Feeds}{7}{subsection.19}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {2.6}{\ignorespaces The packet MKC declares a new child feed and points to the address 859aa... The packet ICH in the new feed indicates that it is a child feed and has an upward pointer to its parent feed.}}{7}{figure.20}\protected@file@percent }
-\newlabel{fig:mk_child}{{\M@TitleReference {2.6}{The packet MKC declares a new child feed and points to the address 859aa... The packet ICH in the new feed indicates that it is a child feed and has an upward pointer to its parent feed.}}{7}{The packet MKC declares a new child feed and points to the address 859aa... The packet ICH in the new feed indicates that it is a child feed and has an upward pointer to its parent feed}{figure.20}{}}
-\newlabel{fig:mk_child@cref}{{[figure][6][2]2.6}{[1][7][]7}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.6}Creating Continuation Feeds}{8}{subsection.21}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {2.7}{\ignorespaces The packet CTD declares a new continuation feed and points to the address aa987... The packet ICN in the new feed indicates that it is a continuation feed and has an upward pointer to its previous feed.}}{8}{figure.22}\protected@file@percent }
-\newlabel{fig:mk_contd}{{\M@TitleReference {2.7}{The packet CTD declares a new continuation feed and points to the address aa987... The packet ICN in the new feed indicates that it is a continuation feed and has an upward pointer to its previous feed.}}{8}{The packet CTD declares a new continuation feed and points to the address aa987... The packet ICN in the new feed indicates that it is a continuation feed and has an upward pointer to its previous feed}{figure.22}{}}
-\newlabel{fig:mk_contd@cref}{{[figure][7][2]2.7}{[1][8][]8}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.7}Packet Types}{8}{subsection.23}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {2.3}Pycom 4}{8}{section.24}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.5}Requesting Packets}{6}{subsection.18}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2.5}{\ignorespaces Node 2 requests packet with seq. nr. 3. Node 1 returns the requested packet. Node 3 does not have the requested packet and therefore does not answer.}}{7}{figure.21}\protected@file@percent }
+\newlabel{fig:request}{{\M@TitleReference {2.5}{Node 2 requests packet with seq. nr. 3. Node 1 returns the requested packet. Node 3 does not have the requested packet and therefore does not answer.}}{7}{Node 2 requests packet with seq. nr. 3. Node 1 returns the requested packet. Node 3 does not have the requested packet and therefore does not answer}{figure.21}{}}
+\newlabel{fig:request@cref}{{[figure][5][2]2.5}{[1][7][]7}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.6}Side Hashchains}{7}{subsection.22}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2.6}{\ignorespaces Feed containing three packets. The second packet is of type chain 20 with a pointer to the next chain packet. In the last chain packet, the pointer is set to zero and a padding is added between the end of the payload and start of the pointer.}}{8}{figure.23}\protected@file@percent }
+\newlabel{fig:chain}{{\M@TitleReference {2.6}{Feed containing three packets. The second packet is of type chain 20 with a pointer to the next chain packet. In the last chain packet, the pointer is set to zero and a padding is added between the end of the payload and start of the pointer.}}{8}{Feed containing three packets. The second packet is of type chain 20 with a pointer to the next chain packet. In the last chain packet, the pointer is set to zero and a padding is added between the end of the payload and start of the pointer}{figure.23}{}}
+\newlabel{fig:chain@cref}{{[figure][6][2]2.6}{[1][7][]8}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.7}Creating Child Feeds}{8}{subsection.24}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2.7}{\ignorespaces The packet MKC declares a new child feed and points to the address 859aa... The packet ICH in the new feed indicates that it is a child feed and has an upward pointer to its parent feed.}}{9}{figure.25}\protected@file@percent }
+\newlabel{fig:mk_child}{{\M@TitleReference {2.7}{The packet MKC declares a new child feed and points to the address 859aa... The packet ICH in the new feed indicates that it is a child feed and has an upward pointer to its parent feed.}}{9}{The packet MKC declares a new child feed and points to the address 859aa... The packet ICH in the new feed indicates that it is a child feed and has an upward pointer to its parent feed}{figure.25}{}}
+\newlabel{fig:mk_child@cref}{{[figure][7][2]2.7}{[1][8][]9}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.8}Creating Continuation Feeds}{9}{subsection.26}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2.8}{\ignorespaces The packet CTD declares a new continuation feed and points to the address aa987... The packet ICN in the new feed indicates that it is a continuation feed and has an upward pointer to its previous feed. The red line indicates that no further packets can be appended.}}{9}{figure.27}\protected@file@percent }
+\newlabel{fig:mk_contd}{{\M@TitleReference {2.8}{The packet CTD declares a new continuation feed and points to the address aa987... The packet ICN in the new feed indicates that it is a continuation feed and has an upward pointer to its previous feed. The red line indicates that no further packets can be appended.}}{9}{The packet CTD declares a new continuation feed and points to the address aa987... The packet ICN in the new feed indicates that it is a continuation feed and has an upward pointer to its previous feed. The red line indicates that no further packets can be appended}{figure.27}{}}
+\newlabel{fig:mk_contd@cref}{{[figure][8][2]2.8}{[1][9][]9}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.9}Packet Types}{10}{subsection.28}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2.3}Pycom 4}{10}{section.29}\protected@file@percent }
 \@writefile{lof}{\addvspace {10pt}}
 \@writefile{lot}{\addvspace {10pt}}
-\@writefile{toc}{\contentsline {chapter}{\chapternumberline {3}Conclusion}{9}{chapter.25}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{\chapternumberline {3}Conclusion}{11}{chapter.30}\protected@file@percent }
 \@writefile{toc}{\vspace  {2em}}
 \bibstyle{plainnat}
 \bibdata{thesis}
 \bibcite{10.1007/978-3-030-01168-0_11}{{1}{2018}{{Carlsson et~al.}}{{Carlsson, Kuzminykh, Franksson, and Liljegren}}}
 \bibcite{10.1145/3293534}{{2}{2019}{{Liando et~al.}}{{Liando, Gamage, Tengourtius, and Li}}}
 \bibcite{10.1145/3357150.3357396}{{3}{2019}{{Tarr et~al.}}{{Tarr, Lavoie, Meyer, and Tschudin}}}
-\@writefile{toc}{\contentsline {chapter}{Bibliography}{10}{appendix*.26}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{Bibliography}{12}{appendix*.31}\protected@file@percent }
 \@writefile{lof}{\addvspace {10pt}}
 \@writefile{lot}{\addvspace {10pt}}
-\@writefile{toc}{\contentsline {appendix}{\chapternumberline {A}Appendix}{11}{appendix.27}\protected@file@percent }
+\@writefile{toc}{\contentsline {appendix}{\chapternumberline {A}Appendix}{13}{appendix.32}\protected@file@percent }
 \@writefile{toc}{\vspace  {2em}}
-\memsetcounter{lastsheet}{15}
-\memsetcounter{lastpage}{12}
-\gdef \@abspage@last{15}
+\memsetcounter{lastsheet}{17}
+\memsetcounter{lastpage}{14}
+\gdef \@abspage@last{17}

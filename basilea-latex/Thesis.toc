@@ -6,16 +6,18 @@
 \contentsline {chapter}{\chapternumberline {2}Background}{3}{chapter.4}%
 \contentsline {section}{\numberline {2.1}Long Range (LoRa) Wireless Technology}{3}{section.5}%
 \contentsline {section}{\numberline {2.2}Overview of TinySSB}{4}{section.7}%
-\contentsline {subsection}{\numberline {2.2.1}Signing and Verifying Packets}{4}{subsection.8}%
-\contentsline {subsection}{\numberline {2.2.2}Sending Data through the Network}{5}{subsection.11}%
-\contentsline {subsection}{\numberline {2.2.3}Trust Anchors}{5}{subsection.13}%
-\contentsline {subsection}{\numberline {2.2.4}Requesting Packets}{6}{subsection.15}%
-\contentsline {subsection}{\numberline {2.2.5}Creating Child Feeds}{7}{subsection.19}%
-\contentsline {subsection}{\numberline {2.2.6}Creating Continuation Feeds}{8}{subsection.21}%
-\contentsline {subsection}{\numberline {2.2.7}Packet Types}{8}{subsection.23}%
-\contentsline {section}{\numberline {2.3}Pycom 4}{8}{section.24}%
-\contentsline {chapter}{\chapternumberline {3}Conclusion}{9}{chapter.25}%
+\contentsline {subsection}{\numberline {2.2.1}Pure25519 Signature and Hash functions}{4}{subsection.8}%
+\contentsline {subsection}{\numberline {2.2.2}Signing and Verifying Packets}{4}{subsection.9}%
+\contentsline {subsection}{\numberline {2.2.3}Sending Data through the Network}{5}{subsection.12}%
+\contentsline {subsection}{\numberline {2.2.4}Trust Anchors}{5}{subsection.14}%
+\contentsline {subsection}{\numberline {2.2.5}Requesting Packets}{6}{subsection.18}%
+\contentsline {subsection}{\numberline {2.2.6}Side Hashchains}{7}{subsection.22}%
+\contentsline {subsection}{\numberline {2.2.7}Creating Child Feeds}{8}{subsection.24}%
+\contentsline {subsection}{\numberline {2.2.8}Creating Continuation Feeds}{9}{subsection.26}%
+\contentsline {subsection}{\numberline {2.2.9}Packet Types}{10}{subsection.28}%
+\contentsline {section}{\numberline {2.3}Pycom 4}{10}{section.29}%
+\contentsline {chapter}{\chapternumberline {3}Conclusion}{11}{chapter.30}%
 \vspace {2em}
-\contentsline {chapter}{Bibliography}{10}{appendix*.26}%
-\contentsline {appendix}{\chapternumberline {A}Appendix}{11}{appendix.27}%
+\contentsline {chapter}{Bibliography}{12}{appendix*.31}%
+\contentsline {appendix}{\chapternumberline {A}Appendix}{13}{appendix.32}%
 \vspace {2em}
