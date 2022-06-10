@@ -9,11 +9,11 @@
 \contentsline {subsection}{\numberline {2.2.1}Pure25519 Signature and Hash functions}{4}{subsection.8}%
 \contentsline {subsection}{\numberline {2.2.2}Signing and Verifying Packets}{4}{subsection.9}%
 \contentsline {subsection}{\numberline {2.2.3}Sending Data through the Network}{5}{subsection.12}%
-\contentsline {subsection}{\numberline {2.2.4}Trust Anchors}{5}{subsection.14}%
-\contentsline {subsection}{\numberline {2.2.5}Requesting Packets}{6}{subsection.18}%
-\contentsline {subsection}{\numberline {2.2.6}Side Hashchains}{7}{subsection.22}%
-\contentsline {subsection}{\numberline {2.2.7}Creating Child Feeds}{8}{subsection.24}%
-\contentsline {subsection}{\numberline {2.2.8}Creating Continuation Feeds}{9}{subsection.26}%
+\contentsline {subsection}{\numberline {2.2.4}Trust Anchors}{6}{subsection.14}%
+\contentsline {subsection}{\numberline {2.2.5}Requesting Packets}{7}{subsection.18}%
+\contentsline {subsection}{\numberline {2.2.6}Side Hash Chains}{8}{subsection.22}%
+\contentsline {subsection}{\numberline {2.2.7}Creating Child Feeds}{9}{subsection.24}%
+\contentsline {subsection}{\numberline {2.2.8}Creating Continuation Feeds}{10}{subsection.26}%
 \contentsline {subsection}{\numberline {2.2.9}Packet Types}{10}{subsection.28}%
 \contentsline {section}{\numberline {2.3}Pycom 4}{10}{section.29}%
 \contentsline {chapter}{\chapternumberline {3}Conclusion}{11}{chapter.30}%
