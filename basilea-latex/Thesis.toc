@@ -14,10 +14,17 @@
 \contentsline {subsection}{\numberline {2.2.6}Side Hash Chains}{8}{subsection.22}%
 \contentsline {subsection}{\numberline {2.2.7}Creating Child Feeds}{9}{subsection.24}%
 \contentsline {subsection}{\numberline {2.2.8}Creating Continuation Feeds}{10}{subsection.26}%
-\contentsline {subsection}{\numberline {2.2.9}Packet Types}{10}{subsection.28}%
-\contentsline {section}{\numberline {2.3}Pycom 4}{10}{section.29}%
-\contentsline {chapter}{\chapternumberline {3}Conclusion}{11}{chapter.30}%
+\contentsline {section}{\numberline {2.3}Pycom 4}{10}{section.28}%
+\contentsline {chapter}{\chapternumberline {3}Feed Trees}{11}{chapter.29}%
+\contentsline {section}{\numberline {3.1}Fork Tree}{11}{section.30}%
+\contentsline {subsection}{\numberline {3.1.1}Feed Limitations}{11}{subsection.31}%
+\contentsline {subsection}{\numberline {3.1.2}Initialization}{12}{subsection.32}%
+\contentsline {subsection}{\numberline {3.1.3}Creating a Fork}{12}{subsection.34}%
+\contentsline {subsection}{\numberline {3.1.4}Producer vs Consumer}{13}{subsection.36}%
+\contentsline {subsection}{\numberline {3.1.5}Handling the DMX Values}{13}{subsection.37}%
+\contentsline {section}{\numberline {3.2}Sliding Window Tree}{13}{section.38}%
+\contentsline {chapter}{\chapternumberline {4}Conclusion}{14}{chapter.39}%
 \vspace {2em}
-\contentsline {chapter}{Bibliography}{12}{appendix*.31}%
-\contentsline {appendix}{\chapternumberline {A}Appendix}{13}{appendix.32}%
+\contentsline {chapter}{Bibliography}{15}{appendix*.40}%
+\contentsline {appendix}{\chapternumberline {A}Appendix}{16}{appendix.41}%
 \vspace {2em}

@@ -1,0 +1,41 @@
+% !TEX root = ../Thesis.tex
+\chapter{Feed Trees}
+
+While feeds are a very powerful concept, there are still some limitations to them. Once a packet is appended it cannot be changed or replaced anymore (this would violate the append-only concept, see \cref{sec:signing}). It is not possible to start replicating the feed at any arbitrary packet position, it has to be built up starting with the header and appending packet after packet until the relevant position is reached (chain of trust, see \cref{sec:anchor}). Since a single feed alone cannot implement those features, we need a different solution. In this section we will explore how we can simulate the desired functionalities using the concepts discussed in \cref{sec:tiny} and some small additions to the TinySSB protocol. By using feeds, child feeds and continuation feeds as building blocks, larger structures can be constructed that are called 'feed trees'. The goal is that the user can interact with those trees on an abstract level as if it were feeds with added functionalities, while hiding the underlying technical complexity.
+
+\section{Fork Tree}
+\subsection{Feed Limitations}
+If a user realizes that an already appended packets in a feed has an outdated or faulty payload, (s)he cannot revert the append process. A quick fix is to append a new packet to the feed, that informs the nodes to disregard or reinterpret said packet while evaluating it. However the packet stored on the device itself cannot be altered and the fix can only be applied, once the packet containing it has arrived at the node. It also means that newly deployed nodes that replicate the feed have to first receive and append the faulty packet before receiving the fix (chain of trust) even though the packet with the fix could have been created long before. If not only one but a series of packets have flaws, additionally to the problems stated before, storage would be needed for a lot of undesirable packets. In an autonomous environment especially with only low storage availability, this will be a problem. A different fix is to completely abandon the feed and resend every packet with the updated fixes. While solving the storage problem, it has the disadvantage of taking a lot of time and using the network for sending packets again that were already sent before. Both methods are not desirable and therefore a more efficient solution is presented in this section. 
+
+\subsection{Initialization}
+To address the problem of reverting to an earlier position in a feed, the feed structure named 'fork tree' is introduced. A new packet type 'make-fork-tree' is added to the other TinySSB packets. It has technically the same functionality as the make-child packet since it also creates a new feed and points to it. However the packet also triggers TinySSB to create a new fork tree construct. To initialize the tree, three operations have to be performed. First the feed that is pointed at by the make-fork-tree packet (also called root feed) is created. Secondly an additional child feed gets created by appending a make-child packet to the root feed. And thirdly a payload 48 packet gets appended to the root feed as a placeholder. It is used to make the scanning of a larger fork trees easier and could in future implementations be used to add additional meta data to the tree. A newly initialized fork tree can be seen in \cref{fig:fork1}.
+
+\begin{figure}
+\centering
+\includegraphics[width=1\textwidth]{fork1}
+\caption{Second packet in feed aaa... initializes a new fork tree and points to root feed bbb... . The second packet in feed bbb... creates and points to feed ccc... .}
+\label{fig:fork1}
+\end{figure}
+ 
+The child feed created from within the root feed is the emergency feed (feed ccc... in \cref{fig:fork1}). If at any point in the future a new fork needs to be created (see \cref{sec:forking}) the appropriate feed will already be present. After initialization the root feed of a fork tree is being used nearly identical to a normal feed. Any packet with either type payload 48 or chain 20 that the user appends to the tree will be automatically appended to the root feed. Other nodes that want to replicate the fork tree could theoretically replicate the initialized tree the same way they would replicate any other feeds and child feeds. However it is only after the structure gets more complex that a new solution must be found (see \cref{sec:dmxfork}).
+
+\subsection{Creating a Fork}
+\label{sec:forking}
+
+The idea of creating forks is highly influenced from the ability to fork in version control systems[ADD SOURCE]. Creating a fork in a fork tree means to nominate any packet in the packet chain to be the new front packet of the tree. All packets that were appended later are disregarded and can even be discarded. Any further packet that gets appended to the tree continues directly after the newly nominated front packet. To simulate this direct continuation without violating the append-only concept, the emergency feed gets activated and packets are appended there. \\
+To successfully start the new fork two operations have to be performed. As the first step, a new emergency feed gets created by adding a make child packet to the old emergency feed. The old emergency feed is now used as the main feed to append packets to. Secondly a new 'fork' packet type is introduced and appended to the old emergency feed. This fork packet contains the feed ID of the previous feed in the packet chain and the sequence number of the previous packet in said feed. A visualization of a fork can be seen in \cref{fig:fork2}.
+
+\begin{figure}
+\centering
+\includegraphics[width=1\textwidth]{fork2}
+\caption{Fork Tree with one fork. The fork packet points to the new front packet in feed bbb... seq. nr. 4. Packet with seq. nr. 5 in feed bbb... is disregarded since it was added after the new front.}
+\label{fig:fork2}
+\end{figure}
+
+\subsection{Producer vs Consumer}
+
+\subsection{Handling the DMX Values}
+\label{sec:dmxfork}
+
+
+\section{Sliding Window Tree}

@@ -1,12 +1,12 @@
 # Fdb version 3
-["bibtex Thesis"] 1654880792 "Thesis.aux" "Thesis.bbl" "Thesis" 1654880796
+["bibtex Thesis"] 1655030079 "Thesis.aux" "Thesis.bbl" "Thesis" 1655030239
   "/usr/local/texlive/2022/texmf-dist/bibtex/bst/natbib/plainnat.bst" 1233624470 26816 ffe5423d2019860bad9f54bc402fac15 ""
-  "Thesis.aux" 1654880796 11067 bed8dc82057d1b4de4e53374a4f0620e "pdflatex"
+  "Thesis.aux" 1655030239 14231 cf529ff64fc073e7e33d4b435a68d265 "pdflatex"
   "thesis.bib" 1654513537 5547 d82bf4b53621a817372040b35da8ed68 ""
   (generated)
   "Thesis.bbl"
   "Thesis.blg"
-["pdflatex"] 1654880792 "Thesis.tex" "Thesis.pdf" "Thesis" 1654880796
+["pdflatex"] 1655030235 "Thesis.tex" "Thesis.pdf" "Thesis" 1655030239
   "/usr/local/texlive/2022/texmf-dist/fonts/enc/dvips/base/8r.enc" 1165713224 4850 80dc9bab7f31fb78a000ccfed0e27cab ""
   "/usr/local/texlive/2022/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2022/texmf-dist/fonts/tfm/adobe/helvetic/phvb7t.tfm" 1136768653 2240 eb56c13537f4d8a0bd3fafc25572b1bd ""
@@ -208,12 +208,15 @@
   "/usr/local/texlive/2022/texmf.cnf" 1647878952 577 209b46be99c9075fd74d4c0369380e8c ""
   "Back/AppendixA.tex" 1654191142 46 ac3b3c8d72d4f72d8280a9ff588c0557 ""
   "Back/wissensch_Redlichkeit_E_Aug_21.pdf" 1654191142 299919 164bf8e7b53b3c763415055454ce2122 ""
-  "Chapters/Background.tex" 1654880782 22852 76d1294f6a14ceade0ccede67156ac8f ""
+  "Chapters/Background.tex" 1654938076 22698 8d9d7515e05910ce8159172b6ba9ac85 ""
   "Chapters/Chapter3.tex" 1654191142 278 cb4456a96b8fced93fc0cbf55219e6eb ""
   "Chapters/Introduction.tex" 1654444875 4760 492ffbb99ef0c00e86bfda0b710c6045 ""
+  "Chapters/Trees.tex" 1655030235 6008 ea0be3e29624e1bf98610ba15bcca7f9 ""
   "Figures//chain.png" 1654879188 383111 fb02c505b4ce4dda8690775f2f3cfc67 ""
   "Figures//chirps.png" 1654527734 3184103 0344d9ac4b6752b121b551365829a3f7 ""
   "Figures//feed.png" 1654626499 114228 72caf71709e02bba070cc9fccb249c89 ""
+  "Figures//fork1.png" 1655027815 280569 ceb804bf337a65f599424c9c3e94db35 ""
+  "Figures//fork2.png" 1655029908 427019 ebdde4059117933be86f028ef0323055 ""
   "Figures//mk_child.png" 1654767511 331810 6432dfbd71ec1766f6a824b1ec57120c ""
   "Figures//mk_contd.png" 1654770344 350175 4c19a0d55906fdb2d98e8df01c98ab36 ""
   "Figures//packets.png" 1654850687 236815 316d752c5bfbbf41d89a7c2bb0906c78 ""
@@ -221,11 +224,11 @@
   "Figures//request.png" 1654867500 627380 90f134eaa3d905abf59c4f5d830adfad ""
   "Front/Abstract.tex" 1654262813 403 00cffa85ca7aaa0f6231b42647648037 ""
   "Template/logo-en.pdf" 1654191142 226255 3968f8a5b7ea9c401ea2e7df31efc4e0 ""
-  "Thesis.aux" 1654880796 11067 bed8dc82057d1b4de4e53374a4f0620e "pdflatex"
-  "Thesis.bbl" 1654880792 1835 d1fd3fbb530ca13a18a28c3fceec0d57 "bibtex Thesis"
-  "Thesis.out" 1654880796 3209 7ef1aa44370c969e6ec0e2893ebb0171 "pdflatex"
-  "Thesis.tex" 1654531131 2382 06f1b255cd1d8ceaa89d401842b2884b ""
-  "Thesis.toc" 1654880796 1555 c0fa7eb79d18be09acb543dbc9d980ee "pdflatex"
+  "Thesis.aux" 1655030239 14231 cf529ff64fc073e7e33d4b435a68d265 "pdflatex"
+  "Thesis.bbl" 1655030079 1835 d1fd3fbb530ca13a18a28c3fceec0d57 "bibtex Thesis"
+  "Thesis.out" 1655030239 4391 cea678004fe761c19eb7c041de8f5d63 "pdflatex"
+  "Thesis.tex" 1655025171 2408 0c5a72c1d2ac9ef2164bda1d8bb6a3b5 ""
+  "Thesis.toc" 1655030239 2126 fc67f54d789ed492905ef7de1a1fc6c3 "pdflatex"
   "basilea.sty" 1654191142 9172 0b9a9d2fd4164b84f6fe41013223a941 ""
   (generated)
   "Thesis.aux"

@@ -41,15 +41,15 @@ In \cref{fig:chirps} we can see ten upchirps (preamble) and two downchirps (star
 (Sources for \cref{sec:lora} are~\cite{10.1007/978-3-030-01168-0_11} and~\cite{10.1145/3293534})
 
 \section{Overview of TinySSB}
+\label{sec:tiny}
 \subsection{Pure25519 Signature and Hash functions}
 Two very important concepts in TinySSB that are used at various different points in the system are signature and hash functions. The importance of signatures will be discussed in \cref{sec:signing}. The algorithm that is used in this thesis is the ed25519 elliptic curve. [ADD SOURCE] It is used in TinySSB to digitally sign packets on one device and verify the signature on another device. To be able to achieve this, a key-pair has to be created first. The key-pair consists of a public key and a secret key. The algorithm then takes as input any message (in bytes) and the secret key that was created in the first step. The output is a digital signature. If any individual has access to the original message, the signature and the public key, they can verify the signature and confirm that the message was signed with the secret key that belongs to the public key used for verifying. \\
-A hashing algorithm is used to convert a byte message with arbitrary length into a fixed size byte value. It is a deterministic algorithm, meaning that for any input, the algorithm will produce the exact same result every time. Additionally a person that knows the hash algorithm used and the resulting hash is not able to reconstruct the original input message. 
-[CONTINUE HERE]
-In TinySSB the sha256 hash algorithm is used. It takes any byte value as input and returns a 256 bytes value. 
+A hashing algorithm is used to convert a byte message with arbitrary length into a fixed size byte value. It is a deterministic algorithm, meaning that for any input, the algorithm will produce the exact same result every time. It is not possible for anyone who only knows the hash algorithm and the resulting hash to reconstruct the original input message. 
+In TinySSB the sha256 hash algorithm is used. It takes any byte value as input and returns a 256 bytes value. [ADD SOURCE]
 
 \subsection{Signing and Verifying Packets}
 \label{sec:signing}
-TinySSB (Tiny Secure Scuttlebutt) is a protocol that is heavily influenced by SSB (Secure Scuttlebutt). An important concept of both protocols is the use of 'append-only-logs' or 'feeds'. In TinySSB a feed consists of a 128 byte feed header block containing some general information about the feed and any number of 128 bytes log-entries appended after it. Every node has one ID feed to be identifiable and an arbitrary amount of child and continuation feeds. [ADD REF]
+TinySSB (Tiny Secure Scuttlebutt) is a protocol that is heavily influenced by SSB (Secure Scuttlebutt). An important concept of both protocols is the use of 'append-only-logs' or 'feeds'. In TinySSB a feed consists of a 128 byte feed header block containing some general information about the feed and any number of 128 bytes log-entries appended after it. Once a log-entry is appended to the feed it cannot be changed or replaced anymore. This is an important property of this protocol and the reason for it is discussed in \cref{sec:anchor}. Every node has one ID feed to be identifiable and an arbitrary amount of child and continuation feeds. [ADD REF]
 \begin{figure}
 \centering
 \includegraphics[width=1\textwidth]{feed}
@@ -80,6 +80,7 @@ To propagate data through a TinySSB network, a receiving node has to replicate t
 \end{figure}
 
 \subsection{Trust Anchors}
+\label{sec:anchor}
 In \cref{sec:sending} we explored, how after successful verification nodes can append packets to feeds. Once a node has a replica of another feed, this is a straight forward process. However this does not yet explain how we can start a replication feed. If a node does not know the feed ID of a feed it wants to replicate, it cannot verify and trust its packets. To overcome this problem, we have to introduce \textbf{trust anchors}. Before a node can receive any packets from other nodes in the network, it has to be manually\footnote{At least one anchor has to be initialized manually. It would be possible to implement a higher authority / admin feed, that appends further anchors to its own feed and that way propagates anchors through the network.} initialized with trust anchors. A trust anchor refers to the feed ID of an identification feed of a node. If a trust anchor is installed, the node has the ability to verifying packets of the corresponding feed and start replicating it. While the first packet of a feed is directly dependent on the trust anchor to verify the signature, all the following packets can only be verified if a hash value of the previous packet is available. Since we have already established that we trust the previous packet, we can for that reason also trust the next packet. With this technique a trust chain is built that guarantees authenticity\footnote{No third party can alter the message.} and integrity\footnote{The message can only have been created by the owner of the feed.}. [REF POC?]
 
 \subsection{Requesting Packets}
@@ -129,11 +130,6 @@ A feature with similar functionality is the creation of a continuation feed. The
 \end{figure}
 
 After a continuation packet is appended to a feed, log entries can no longer be appended, thus new packets for said feed do not need to be requested anymore. However the node still has to respond to incoming want request for the feed to be able to further propagate it through the network. The trust chain in this case is continued through the continuation packets. Using just continuation feeds as in \cref{fig:mk_contd} therefore does not free up storage space or come with any advantage, as still every node needs to build up the complete trust chain (now using two shorter separate instead of one longer feed). How continuation feeds can be useful will be discussed in [ADD REF TO SECTION]. As with child feeds, continuation feeds also have their own key-pairs that are stored in the same config file. If the address to the continuation feed is set to zero, this will be interpreted as ending the feed without continuation (No new feed will be created).
-
-\subsection{Packet Types}
-
-There are a number of different packet types in TinySSB, some of which were added on top while working on this thesis.
-The first packet which can also be seen in \cref{fig:packets} describes a typical 48 bytes payload packet where the entire 48 bytes can be used for arbitrary data. The second packet seen in the same Figure is used to start a blob chain. 
 
 
 
