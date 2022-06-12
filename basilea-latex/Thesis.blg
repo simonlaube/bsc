@@ -3,9 +3,10 @@ Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: Thesis.aux
 The style file: plainnat.bst
 Database file #1: thesis.bib
+Warning--I didn't find a database entry for "fig:fork3"
 You've used 3 entries,
             2773 wiz_defined-function locations,
-            620 strings with 5855 characters,
+            621 strings with 5864 characters,
 and the built_in function-call counts, 2005 in all, are:
 = -- 190
 > -- 131
@@ -44,3 +45,4 @@ warning$ -- 0
 while$ -- 14
 width$ -- 0
 write$ -- 65
+(There was 1 warning)
