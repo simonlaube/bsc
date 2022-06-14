@@ -307,6 +307,12 @@ class RessourceManager:
         # TODO: handle want / out / in queues individually for a given amount of time
         # TODO: Log time spent for different queues for optimizing
         while True:
+            
+            # --------- do some tasks specific to the use case of the network -----
+            # e.g. record temperature and append to feed if enough time has passed
+            # since the last time.
+
+
             # --------- append next pkt ---------------
             self.append_lock.acquire()
             self.append_lock.release()

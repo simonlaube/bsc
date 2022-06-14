@@ -28,8 +28,12 @@
 \contentsline {subsection}{\numberline {3.2.3}Pointer Feeds}{16}{subsection.46}%
 \contentsline {subsection}{\numberline {3.2.4}Producer vs Consumer}{17}{subsection.49}%
 \contentsline {subsection}{\numberline {3.2.5}Handling the DMX Values}{18}{subsection.50}%
-\contentsline {chapter}{\chapternumberline {4}Conclusion}{19}{chapter.51}%
+\contentsline {chapter}{\chapternumberline {4}Resource Management}{19}{chapter.51}%
+\contentsline {section}{\numberline {4.1}Incoming and Outgoing Packets}{19}{section.52}%
+\contentsline {section}{\numberline {4.2}Resource Manager Loop}{20}{section.53}%
+\contentsline {section}{\numberline {4.3}Central DMX handling}{20}{section.54}%
+\contentsline {chapter}{\chapternumberline {5}Conclusion}{21}{chapter.55}%
 \vspace {2em}
-\contentsline {chapter}{Bibliography}{20}{appendix*.52}%
-\contentsline {appendix}{\chapternumberline {A}Appendix}{21}{appendix.53}%
+\contentsline {chapter}{Bibliography}{22}{appendix*.56}%
+\contentsline {appendix}{\chapternumberline {A}Appendix}{23}{appendix.57}%
 \vspace {2em}
