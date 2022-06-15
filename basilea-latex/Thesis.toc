@@ -14,7 +14,7 @@
 \contentsline {subsection}{\numberline {2.2.6}Side Hash Chains}{8}{subsection.22}%
 \contentsline {subsection}{\numberline {2.2.7}Creating Child Feeds}{9}{subsection.24}%
 \contentsline {subsection}{\numberline {2.2.8}Creating Continuation Feeds}{10}{subsection.26}%
-\contentsline {section}{\numberline {2.3}Pycom 4}{10}{section.28}%
+\contentsline {section}{\numberline {2.3}Pycom 4 and Micropython}{10}{section.28}%
 \contentsline {chapter}{\chapternumberline {3}Feed Trees}{11}{chapter.29}%
 \contentsline {section}{\numberline {3.1}Fork Tree}{11}{section.30}%
 \contentsline {subsection}{\numberline {3.1.1}Feed Limitations}{11}{subsection.31}%
@@ -29,11 +29,12 @@
 \contentsline {subsection}{\numberline {3.2.4}Producer vs Consumer}{17}{subsection.49}%
 \contentsline {subsection}{\numberline {3.2.5}Handling the DMX Values}{18}{subsection.50}%
 \contentsline {chapter}{\chapternumberline {4}Resource Management}{19}{chapter.51}%
-\contentsline {section}{\numberline {4.1}Incoming and Outgoing Packets}{19}{section.52}%
-\contentsline {section}{\numberline {4.2}Resource Manager Loop}{20}{section.53}%
+\contentsline {section}{\numberline {4.1}Resource Manager Loop}{19}{section.52}%
+\contentsline {section}{\numberline {4.2}Incoming and Outgoing Packets}{19}{section.53}%
 \contentsline {section}{\numberline {4.3}Central DMX handling}{20}{section.54}%
 \contentsline {chapter}{\chapternumberline {5}Conclusion}{21}{chapter.55}%
+\contentsline {section}{\numberline {5.1}Future Work}{22}{section.56}%
 \vspace {2em}
-\contentsline {chapter}{Bibliography}{22}{appendix*.56}%
-\contentsline {appendix}{\chapternumberline {A}Appendix}{23}{appendix.57}%
+\contentsline {chapter}{Bibliography}{23}{appendix*.57}%
+\contentsline {appendix}{\chapternumberline {A}Appendix}{24}{appendix.58}%
 \vspace {2em}
