@@ -1192,6 +1192,10 @@ INPUT ./Figures//chirps.png
 INPUT ./Figures//chirps.png
 INPUT /usr/local/texlive/2022/texmf-dist/fonts/vf/adobe/helvetic/phvr7t.vf
 INPUT /usr/local/texlive/2022/texmf-dist/fonts/tfm/adobe/helvetic/phvr8r.tfm
+INPUT ./Figures//lopy4.png
+INPUT Figures//lopy4.png
+INPUT ./Figures//lopy4.png
+INPUT ./Figures//lopy4.png
 INPUT /usr/local/texlive/2022/texmf-dist/fonts/tfm/adobe/helvetic/phvr7t.tfm
 INPUT ./Figures//feed.png
 INPUT Figures//feed.png

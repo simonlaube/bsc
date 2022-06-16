@@ -28,8 +28,8 @@ Important concepts that are used in this thesis are presented in this section. A
 \section{Long Range (LoRa) Wireless Technology}
 \label{sec:lora}
 In recent years the number of devices connected to the Internet of Things (IoT) has been increasing rapidly. Since a lot of those devices do not need to transfer high amounts of data and rather focus on using as little energy as possible, LoRa and similar technologies have been developed to serve those use-cases. In this section we will give a short overview of how LoRa works and how we can adjust its parameters. \\
-LoRa promises long battery life, far-reaching communication distances (10 to 15 kilometres if devices are in line-of-sight) and high node density (nodes in close proximity can operate at the same time if configured correctly). The downside of having all those practical features is a lower data rate. To achieve this, it uses chirp spread spectrum modulation. Data that has to be sent is converted into \textit{upchirps} and \textit{downchirps}. Chirping up or down refers to a signal that is sent with constantly increasing or decreasing frequency. To adjust the transmission settings optimally to specific environments, different parameters that alter the chirps can be configured individually. One of those parameter is the \textbf{bandwidth}. The bandwidth is the difference in frequency of the start and end of one chirp and is typically set to 125, 250 or 500kHz. A higher bandwidth increases the acceptable transmission distance. Another parameter is the \textbf{spreading factor}. It determines the angle of one chirp. The higher the spreading factor, the longer it takes to complete one chirp. This can increase the transmission distance but reduces the data rate. Additionally to the physical settings we can set different \textbf{coding rates} which determine the forward error correction. A higher coding rate leads to a more reliable reception of packets and a lower data rate.
-For our project we use a spreading factor of 7, bandwidth of 250kHz and a coding rate of 4/7. These settings have worked well to test the software but need to be reconsidered once the devices get deployed depending on the surrounding conditions.
+LoRa promises long battery life, far-reaching communication distances (10 to 15 kilometres if devices are in line-of-sight) and high node density (nodes in close proximity can operate at the same time if configured correctly). The downside of having all those practical features is a lower data rate. To send data, it uses chirp spread spectrum modulation. Data that has to be sent is converted into \textit{upchirps} and \textit{downchirps}. Chirping up or down refers to a signal that is sent with constantly increasing or decreasing frequency. To adjust the transmission settings optimally to specific environments, different parameters that alter the chirps can be configured individually. One of those parameters is the \textbf{bandwidth}. The bandwidth is the difference in frequency of the start and end of one chirp and is typically set to 125, 250 or 500kHz. A higher bandwidth increases the acceptable transmission distance. Another parameter is the \textbf{spreading factor}. It determines the 'angle' of one chirp over time. The higher the spreading factor, the smaller the angle and the longer it takes to complete one chirp. This can increase the transmission distance but reduces the data rate. Additionally to the physical settings we can set different \textbf{coding rates} which determine the forward error correction. A higher coding rate leads to a more reliable reception of packets and a lower data rate.
+For this project a spreading factor of 7, bandwidth of 250kHz and a coding rate of 4/7 were being used. These settings have worked well to test the software but need to be reconsidered once the devices get deployed depending on the surrounding conditions.
 \begin{figure}
 \centering
 \includegraphics[width=1\textwidth]{chirps}
@@ -39,6 +39,19 @@ For our project we use a spreading factor of 7, bandwidth of 250kHz and a coding
 In \cref{fig:chirps} we can see ten upchirps (preamble) and two downchirps (start frame delimiter) followed by modulated chirps that contain the actual data. 
 
 (Sources for \cref{sec:lora} are~\cite{10.1007/978-3-030-01168-0_11} and~\cite{10.1145/3293534})
+
+\section{Pycom 4 and Micropython}
+The hardware component of this project is a device that runs on little energy and is capable of sending and receiving packets using LoRa technology. The devices represent the nodes in the network. The specific type chosen for this project is called 'LoPy 4'. Additionally to being able to communicate over LoRa, it can also receive data over bluetooth and WiFi. To be able to connect it to a computer, an additional board ('Expansion Board v3.0') is used where the LoPy device can be connected to. Among additional functionality (LED status light, microSD card slot and further additions) this board has a USB port that can be used to power the device and to upload programs to it. \\
+The code written in this thesis uses the language Micropython which uses for the most part the same syntax as normal Python. It is a smaller version of Python using only a subset of its libraries and is specially optimized for microcontrollers. \\
+While in this project LoPy 4 devices were used, any other device that can run Micropython and has LoRa capability - and similar memory size and other specifications - should be able to run the code written for this thesis and be deployed within the same network. [ADD LOPY AND MICROPYTHON SOURCE]
+\begin{figure}
+\centering
+\includegraphics[width=0.4\textwidth]{lopy4}
+\caption{A LoPy 4 device used in this project attached to an Expansion Board 3.0 inside a case. On the left side is the LoRa antenna and the cable that can be connected to the computer.}
+\label{fig:lopy4}
+\end{figure}
+
+\newpage
 
 \section{Overview of TinySSB}
 \label{sec:tiny}
@@ -95,6 +108,7 @@ Contrary to what \cref{fig:replication} might imply on first glance, network nod
 \end{figure}
 
 \subsection{Side Hash Chains}
+\label{sec:sidechain}
 When using 48 bytes payload packets, the size of data to be transferred is limited to 48 bytes or if larger has to be spilt up into chunks of 48 bytes with each chunk being divided among different consecutive packets. This would lead to a lot of overhead in terms of storage and network use. Therefore a more concise and efficient method is to use side hash chains. The data of a hash chain is (for the most part) not stored in a feed. It is stored in a separate folder in the file system in a file with size 120 bytes. Only the initial packet that points to the start of the chain is appended to the feed as a packet with type chain 20 (See second packet in \cref{fig:packets}). This packet - apart from the DMX, type and signature fields - contains the length of the hash chain, the first part of the payload and a hash pointer to the start of the chain. For chain packets, all fields that are typically used in standard packets can be omitted. Of the 120 bytes 100 are used for payload and 20 for the hash pointer to the next chain packet. A hash pointer is created by hashing the next chain packet. If the hash of the incoming chain packet matches the hash pointer of the previous packet, we can guarantee that the packet is the legitimate continuation of the chain. To be able to create such a chain, the sender must start by creating the last chain packet first and and appending its hash value to the second last packet. Then hashing the second last packet to append to the third last packet and so forth. This step has to be repeated backwards until the whole payload is split into hash chain packets before the first packet can be sent. A visualization of a sidehash chain is seen in \cref{fig:chain}. \\
 \begin{figure}
 \centering
@@ -140,8 +154,6 @@ After a continuation packet is appended to a feed, log entries can no longer be 
 %In both protocols the creator of a message must be able to digitally sign messages while the receiver must be able to verify signatures. 
 
 
-
-\section{Pycom 4 and Micropython}
 
 
 
