@@ -16,10 +16,12 @@ class PriorityQueue:
         self.size = 0
 
     def _init_priority_queues(self):
+        """Initializes the queues for each priority."""
         for i in range(0, self.nr_priorities):
             self.queue.append([])
 
     def _calculate_slots(self):
+        """Calculates which priority gets how many slots."""
         slots = []
         for i in range(0, self.nr_priorities):
             # exponential slot assignments.
@@ -32,7 +34,7 @@ class PriorityQueue:
         self.current_pos = (self.current_pos + 1) % self.nr_pos
 
     def append(self, priority, pkt):
-        # TODO: check for duplicates with hashtable...?
+        """Adds a packet to the given priority queue."""
         if pkt in self.queue[priority]:
             return
         if priority < 0 or priority > self.nr_priorities - 1:
@@ -55,22 +57,25 @@ class PriorityQueue:
         i = 0
         # TODO: if queue is empty, first go to higher priorities
         while not self.queue[priority] and i < self.nr_priorities:
-            priority = (priority + 1) % self.nr_priorities
+            priority = (self.nr_priorities + (priority - 1)) % self.nr_priorities
             i += 1
         self._next_pos()
         # return copy of element (without deleting entry in priority queue)
         return (priority, self.queue[priority][0])
 
     def next(self):
+        """Returns the next packet without removing it."""
         for i in range(0, self.nr_priorities):
             if self.current_pos < self.slot_ranges[i]:
                 return self._next_with_priority(i)
     
     def remove(self, priority, pkt):
+        """Removes a packet from the priority list."""
         self.size -= 1
         self.queue[priority].remove(pkt)
 
     def pop_next(self):
+        """Returns the next packet and removes it."""
         next = self.next()
         if not next:
             return None

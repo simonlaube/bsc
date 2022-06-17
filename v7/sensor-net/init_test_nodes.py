@@ -155,7 +155,7 @@ def init_fork():
             f = feed_mngr.create_feed(c['feed_id'], c['secret'])
 
             ft = fork_tree.create_fork_tree(c['feed_id'], feed_mngr, {}, {}, c)
-            ft.append_bytes(b'hello')
+            ft.append_blob(b'hello alsdhfoaslukdhjf asdflhasdlkfjhasdf asdifuhasdoufhasdf asdfoiuhasdlfuihasdf asdfiouhasdiofuh')
             ft.append_bytes(b'hello')
             ft.append_bytes(b'hello')
             ft.append_bytes(b'hello')

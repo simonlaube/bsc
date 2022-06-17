@@ -2,6 +2,8 @@
 # This script initializes the folder 'pycom' on the desktop.
 # With the argument 'reset', the folder will be deleted and a new admin folder
 # created. With the argument 'add' a new node will be initialized and added.
+# To finally initialize the pycom devices, the created folders have to be
+# uploaded with the pymakr extension of the Atom editor.
 # --------------------------------------------------------------------------- #
  
 import os

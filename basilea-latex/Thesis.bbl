@@ -1,9 +1,16 @@
-\begin{thebibliography}{3}
+\begin{thebibliography}{9}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
   \providecommand{\doi}[1]{doi: #1}\else
   \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Brendel et~al.(2021)Brendel, Cremers, Jackson, and Zhao]{9519456}
+Jacqueline Brendel, Cas Cremers, Dennis Jackson, and Mang Zhao.
+\newblock The provable security of ed25519: Theory and practice.
+\newblock In \emph{2021 IEEE Symposium on Security and Privacy (SP)}, pages
+  1659--1676, 2021.
+\newblock \doi{10.1109/SP40001.2021.00042}.
 
 \bibitem[Carlsson et~al.(2018)Carlsson, Kuzminykh, Franksson, and
   Liljegren]{10.1007/978-3-030-01168-0_11}
@@ -15,6 +22,11 @@ Anders Carlsson, Ievgeniia Kuzminykh, Robin Franksson, and Alexander Liljegren.
   International Publishing.
 \newblock ISBN 978-3-030-01168-0.
 
+\bibitem[Kelly and Frankel(2007)]{Kelly2007UsingHH}
+Scott~G. Kelly and Sheila Frankel.
+\newblock Using hmac-sha-256, hmac-sha-384, and hmac-sha-512 with ipsec.
+\newblock \emph{RFC}, 4868:\penalty0 1--21, 2007.
+
 \bibitem[Liando et~al.(2019)Liando, Gamage, Tengourtius, and
   Li]{10.1145/3293534}
 Jansen~C. Liando, Amalinda Gamage, Agustinus~W. Tengourtius, and Mo~Li.
@@ -24,6 +36,25 @@ Jansen~C. Liando, Amalinda Gamage, Agustinus~W. Tengourtius, and Mo~Li.
 \newblock ISSN 1550-4859.
 \newblock \doi{10.1145/3293534}.
 \newblock URL \url{https://doi.org/10.1145/3293534}.
+
+\bibitem[{Micropython}()]{Micropython}
+{Micropython}.
+\newblock \url{https://github.com/micropython/micropython}.
+\newblock accessed: 2022-07-16.
+
+\bibitem[{Pycom}({\natexlab{a}})]{ExpansionBoard}
+{Pycom}.
+\newblock
+  \url{https://pycom.github.io/pydocs/datasheets/boards/expansion3.html},
+  {\natexlab{a}}.
+\newblock accessed: 2022-07-16.
+
+\bibitem[{Pycom}({\natexlab{b}})]{LoPy}
+{Pycom}.
+\newblock
+  \url{https://pycom.github.io/pydocs/datasheets/development/lopy4.html},
+  {\natexlab{b}}.
+\newblock accessed: 2022-07-16.
 
 \bibitem[Tarr et~al.(2019)Tarr, Lavoie, Meyer, and
   Tschudin]{10.1145/3357150.3357396}
@@ -36,5 +67,11 @@ Dominic Tarr, Erick Lavoie, Aljoscha Meyer, and Christian Tschudin.
 \newblock ISBN 9781450369701.
 \newblock \doi{10.1145/3357150.3357396}.
 \newblock URL \url{https://doi.org/10.1145/3357150.3357396}.
+
+\bibitem[Tschudin()]{tinySSB}
+Christian Tschudin.
+\newblock personal communication.
+\newblock URL \url{https://github.com/tschudin/tinyssb}.
+\newblock 2022-03-23.
 
 \end{thebibliography}

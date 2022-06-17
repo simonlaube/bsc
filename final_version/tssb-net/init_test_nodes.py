@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 
 # ---------------------------------------------------------------------------- #
-# This script creates an admin key pair and three network nodes.
-# Each node has a config file containing its name, private key, public key and
-# the public key of the network admin. Additionally the nodes have an instance
-# of an initialized admin log where they can later append admin log entries.
+# This script creates 4 nodes each in a separate folder. One of them is the
+# admin.
 # ---------------------------------------------------------------------------- #
 
 import os

@@ -3,18 +3,13 @@ import fork_tree
 import session_tree
 import config
 
+"""All feed trees are stored in this dictionary."""
 class FeedForest:
 
     def __init__(self, feed_mngr, dmx_fltr, want_fltr, conf):
         self.trees = {}
 
-        # for feed in feed_mngr.feeds:
-        #     # find ID feeds and add as tree to tree dict
-        #     # ID feeds are the only feeds that are not child and not continuation
-        #     if not feed.get_prev() and not feed.get_parent():
-        #         # print(ssb_util.to_hex(feed.fid))
-        #         # self.trees[ssb_util.to_hex(feed.fid)] = feed
-        # TODO: check for peer id feeds
+        # TODO: check for peer id feeds not only admin
         feed = feed_mngr.get_feed(conf['admin'])
         if feed != None:
             self.trees[ssb_util.to_hex(feed.fid)] = self.load_subtrees(feed,
@@ -25,6 +20,8 @@ class FeedForest:
 
     
     def load_subtrees(self, feed, feed_mngr, dmx_fltr, want_fltr, conf):
+        """Loads all trees that are started with a make tree packet
+        from within the given feed."""
         subtrees = []
         self.is_owner = False
         self.is_critical = False
@@ -57,4 +54,5 @@ class FeedForest:
         return subtrees
 
     def add_subtree(self, subtree):
+        """Adds a subtree to the dictionary. The root feed ID is the key."""
         self.trees[ssb_util.to_hex(subtree.root_fid)] = subtree

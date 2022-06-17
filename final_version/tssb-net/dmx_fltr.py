@@ -7,6 +7,8 @@ if sys.implementation.name == 'micropython':
 else:
     import random
 
+"""Stores and manages dmx values of the node. Feeds can be assigned
+to categories and per feed one dmx value is present."""
 class DMXFilter:
 
     def __init__(self):
@@ -17,6 +19,7 @@ class DMXFilter:
         self.lock = _thread.allocate_lock()
     
     def __contains__(self, fid: str):
+        """Returns True if a dmx value for the given feed ID exists."""
         keys = self._find(fid)
         if keys:
             return True        
@@ -44,6 +47,7 @@ class DMXFilter:
         return res
     
     def _find(self, fid: str):
+        """Returns the dmx valaue for the given feed ID."""
         self.lock.acquire()
         for k, v in self.fltr_dict.items():
             for k2, v2 in v.items():
@@ -54,6 +58,9 @@ class DMXFilter:
         return None
     
     def get_next_want_wire(self, feed_mngr, dmx_fct):
+        """Returns a random want request packet. If the same
+        packet is to be return again and 3 * number of dmx-values
+        seconds have not passed yet, a different packet is returned."""
         if self.size == 0:
             return None
         if sys.implementation.name == 'micropython':
@@ -102,6 +109,7 @@ class DMXFilter:
         return None
 
     def append(self, category: str, fid: str, dmx):
+        """Adds a dmx value to the given category and feed."""
         self.lock.acquire()
         self.size += 1
         if category not in self.fltr_dict.keys():
@@ -112,6 +120,7 @@ class DMXFilter:
         self.lock.release()
 
     def pop(self, fid: str):
+        """Removes dmx value of the given feed."""
         keys = self._find(fid)
         self.lock.acquire()
         if keys:
@@ -124,6 +133,7 @@ class DMXFilter:
         self.lock.release()
     
     def reset_category(self, category: str):
+        """Removes all dmx values of given category."""
         self.lock.acquire()
         if category not in self.fltr_dict.keys():
             self.lock.release()
@@ -134,5 +144,6 @@ class DMXFilter:
         self.lock.release()
     
     def reset(self):
+        """Removes all dmx values."""
         self.size = 0
         self.fltr_dict = {}

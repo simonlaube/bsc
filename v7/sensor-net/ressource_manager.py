@@ -244,6 +244,8 @@ class RessourceManager:
         """If incoming packet dmx / hash is in filters, this function handles the
         packets appropriately. If not, the packet gets discarded."""
         # TODO: proper uncloaking
+        buf = buf[8:]
+
         dmx = buf[:7]
         self.in_queue_lock.acquire()
         for k, v in self.dmx_fltr:
@@ -324,6 +326,7 @@ class RessourceManager:
             # --------- want broadcast ---------------
             next_want = self.dmx_fltr.get_next_want_wire(self.feed_mngr, dmx)
             if next_want:
+                next_want = bytes(8) + next_want # TODO: proper cloaking
                 for f in self.faces:
                     f.enqueue(next_want)
 
@@ -336,6 +339,7 @@ class RessourceManager:
                 if pkt != None:
                     # print('send: ')
                     # print(pkt)
+                    pkt = bytes(8) + pkt # TODO: proper cloaking
                     if not face:
                         for f in self.faces:
                             f.enqueue(pkt)

@@ -11,8 +11,8 @@ from feed_forest import FeedForest
 # from tinyssb import io
 from tinyssb import packet, feed_manager, ssb_util, io
 
-DEBUG = False
-DEMO_WANT = True
+DEBUG = False # If set to True, debug info is printed
+DEMO_WANT = True # If set to True, colored tree gets printed on want packet receive
 
 def log(text):
     if DEBUG:
@@ -42,7 +42,6 @@ class RessourceManager:
         self.in_blob_queue = []
         self.out_queue = PriorityQueue(3) # queue with 3 priority classes
         self.in_queue_lock = _thread.allocate_lock()
-        # self.critical_feeds = self._get_critical_feeds()
 
         self.feed_mngr = feed_manager.FeedManager(self.path, self.config.get_key_dict())
         self.feed_forest = FeedForest(self.feed_mngr, self.dmx_fltr, self.want_fltr, self.config)
@@ -63,11 +62,11 @@ class RessourceManager:
         if ssb_util.to_hex(feed.fid) == self.config['admin']:
             return # for now (maybe also print this)
         self.demo_want_dict[feed.fid] = seq
-        # print(list(self.feed_forest.trees.get(self.config['admin'])))
         text = self.feed_forest.trees.get(self.config['admin'])[0].demo_print(self.demo_want_dict, feed, self.feed_mngr)
         print(text)
 
     def _get_key_dict(self):
+        """Returns a dictionary of all feeds owned by this node."""
         dict = self.config['child_feeds']
         dict[self.config['feed_id']] = self.config['secret']
         return dict
@@ -94,7 +93,6 @@ class RessourceManager:
             self.dmx_fltr.pop(ssb_util.to_hex(feed.fid))
 
         # check if front is blob. If so, add blob pointer to front_filter
-        # TODO: If we want to handle blobs seperately, append to seperate filterbank
         next_blob_ptr = feed.waiting_for_blob()
         if next_blob_ptr:
             self.dmx_fltr[ssb_util.to_hex(feed.fid)] = (next_blob_ptr, self._handle_blob_receive)
@@ -112,15 +110,6 @@ class RessourceManager:
         """
         Adds the dmx bytes of expected packets to dmx-filter."""
         self.dmx_fltr.reset_category('id') # reset dictionary
-        # for feed in self.feed_mngr.feeds:
-        #     if ssb_util.to_hex(feed.fid) == self.config['feed_id']:
-        #         continue
-        #     if ssb_util.to_hex(feed.parent_id) == self.config['feed_id']:
-        #         continue
-            # if ssb_util.to_hex(feed.fid) == self.config['admin']:
-            # only put ID feeds in dmx front (others are handled in trees)
-
-            # if not feed.get_prev() and not feed.get_parent():
         if self.config['feed_id'] == self.config['admin']:
             return
         feed = self.feed_mngr.get_feed(self.config['admin'])
@@ -132,41 +121,15 @@ class RessourceManager:
         """
         Adds the dmx bytes of expected want requests to dmx-filter.
         By default blocks of all feeds stored in node can be requested and therefore
-        for each feed a want dmx gets loaded into the filterbank.
+        for each feed a want dmx gets loaded into the filterbank. Want requests of
+        trees are handled in the trees.
         """
         self.want_fltr = {} # reset dictionary
-        # TODO: only add wants for own and critical feeds (handle tree wants in tree)
         for feed in self.feed_mngr.feeds:
             self.want_fltr[ssb_util.to_hex(feed.fid)] = dmx(feed.fid + b'want')
 
-    # def _pack_want(self, feed):
-    #     """Returns for given feed a want packet
-    #     according to ssb protocol conventions.
-    #     """
-    #     want_dmx = dmx(feed.fid + b'want')
-    #     seq = len(feed) + 1
-    #     log('want: ' + ssb_util.to_hex(feed.fid) + ' - ' + str(seq))
-    #     hash_pointer = feed.waiting_for_blob()
-    #     # if next packet has to be blob -> append ptr to want request
-    #     if hash_pointer:
-    #         # we only want to check until current seq and not the next
-    #         wire = want_dmx + feed.fid + (seq - 1).to_bytes(4, 'big') + hash_pointer
-    #     else:
-    #         wire = want_dmx + feed.fid + seq.to_bytes(4, 'big')
-    #     return wire
-
-    # def _want_broadcast(self):
-    #     # TODO: implement want for feeds that are not yet in repo but in admin feed
-    #     # or alternatively directly add feed when admin msg arrives
-    #     """
-    #     Adds want packets for feeds that are not owned by this node to priority queue.
-    #     If a feed is 'critical', it will have highest priority.
-    #     """
-    #     next_want = self.dmx_fltr.get_next_want_wire(self.feed_mngr, dmx)
-    #     self.out_queue.append(0, (next_want, None))
-
     def _set_priority_in(self, buf, feed_id, in_queue):
-        # It is assumed, only priorities of id feed packets are set here
+        # Only priorities of id feed packets are set here
         # Packets of trees are managed in tree specific functions
         if feed_id == self.config['admin']:
             in_queue.append(0, (buf, feed_id, self._handle_received_pkt))
@@ -174,6 +137,7 @@ class RessourceManager:
             in_queue.append(2, (buf, feed_id, self._handle_received_pkt))
 
     def _handle_received_pkt(self, buf, feed_id, _, _2, _3, _4):
+        """Tries to append the given packet."""
         feed = self.feed_mngr.get_feed(feed_id)
         if feed == None:
             error('incoming front error: feed not found')
@@ -242,14 +206,13 @@ class RessourceManager:
     def on_receive(self, buf, neigh):
         """If incoming packet dmx / hash is in filters, this function handles the
         packets appropriately. If not, the packet gets discarded."""
-        # TODO: proper uncloaking
+        buf = buf[8:] # TODO: proper uncloaking
         dmx = buf[:7]
         self.in_queue_lock.acquire()
         for k, v in self.dmx_fltr:
             d, fct = v
             if d == dmx:
                 log('received front dmx: ' + str(dmx))
-                # self._handle_front_receive(buf, k)
                 fct(buf, k, self.in_queue)
                 self.in_queue_lock.release()
                 return
@@ -303,8 +266,6 @@ class RessourceManager:
         self.append_lock.release()
 
     def ressource_manager_loop(self):
-        # TODO: handle want / out / in queues individually for a given amount of time
-        # TODO: Log time spent for different queues for optimizing
         while True:
             
             # --------- do some tasks specific to the use case of the network -----
@@ -323,23 +284,23 @@ class RessourceManager:
             # --------- want broadcast ---------------
             next_want = self.dmx_fltr.get_next_want_wire(self.feed_mngr, dmx)
             if next_want:
+                next_want = bytes(8) + next_want # TODO: proper cloaking
                 for f in self.faces:
                     f.enqueue(next_want)
 
             # --------- send next pkt ---------------
             next_out = self.out_queue.pop_next()
 
-            # print(next_out)
             if next_out != None:
                 pkt, face = next_out
                 if pkt != None:
-                    # print('send: ')
-                    # print(pkt)
+                    pkt = bytes(8) + pkt # TODO: proper cloaking
                     if not face:
                         for f in self.faces:
                             f.enqueue(pkt)
                     else:
                         face.enqueue(pkt)
+
             # TODO: check battery and decide
             if sys.implementation.name == 'micropython':
                 time.sleep(3)

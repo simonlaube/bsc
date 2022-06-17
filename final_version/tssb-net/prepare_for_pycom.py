@@ -12,6 +12,7 @@ srcs = [main, tinyssb, pure]
 src = '.'
 
 def clear_folder(dest):
+    """Clears / creates the given destination."""
     try:
         shutil.rmtree(dest)
     except:
@@ -22,6 +23,7 @@ def clear_folder(dest):
         print('could not create directory')
 
 def copy_source_code(dest):
+    """Copies the source code to the given destination."""
     try:
         os.mkdir(dest + tinyssb)
         # os.mkdir(dest + tinyssb)

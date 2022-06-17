@@ -88,7 +88,6 @@ class SessionTree:
 
         # load pointer feeds
         for i in range(0, len(root_feed) - 1):
-            # feed = feed_mngr.get_feed(root_feed[i + 2][:32])
             self.feeds.append(None)
         layer = len(root_feed) - 2
         while next_feed != None and layer > 0:
@@ -222,7 +221,6 @@ class SessionTree:
                 fd = feed_mngr.get_feed(buf[8:40])
                 if fd == None: # update new pointer feeds
                     fd = feed_mngr.create_feed(buf[8:40])
-                    # TODO: Sometimes (after node restart?) an error happens here
                     if fd == None:
                         print(ssb_util.to_hex(buf[8:40]))
                     feed_mngr.append_to_tree_cache(self.root_fid, fd.fid)
@@ -252,8 +250,6 @@ class SessionTree:
         if dmx:
             return (dmx, self._set_priority_in)
         print('could not load dmx front')
-    # TODO NEXT: def _set_priority_in()
-
             
     def append_bytes(self, payload: bytes, feed_mngr, dmx_fltr, want_fltr, config):
         """Appends bytes to the session layer and updates ptr feeds.
@@ -266,7 +262,6 @@ class SessionTree:
             self.feeds.append(f)
             print('session feed created')
         contn_feed = self._append_to_layer(payload, 0, feed_mngr, config)
-        # TODO: still reference prev feed...?
         if contn_feed:
             self.feeds[0] = contn_feed
         layer = 1
@@ -286,7 +281,6 @@ class SessionTree:
         Returns contn feed if new contn feed had to be created, else None."""
         feed = self.feeds[layer]
         if len(feed) > self.max_length: # create contn feed first
-            # TODO: maybe add old feed to list that deletes feeds later...
             sk, pk = config.new_child_keypair(True)
             contn_feed = feed_mngr.create_contn_feed(feed.fid, pk, sk)
             feed_mngr.append_to_tree_cache(self.root_fid, contn_feed.fid)
