@@ -20,21 +20,21 @@
 \contentsline {subsection}{\numberline {3.1.1}Feed Limitations}{12}{subsection.32}%
 \contentsline {subsection}{\numberline {3.1.2}Initialization}{13}{subsection.33}%
 \contentsline {subsection}{\numberline {3.1.3}Creating a Fork}{13}{subsection.35}%
-\contentsline {subsection}{\numberline {3.1.4}Producer vs Consumer}{14}{subsection.39}%
-\contentsline {subsection}{\numberline {3.1.5}Handling the DMX Values}{16}{subsection.42}%
-\contentsline {section}{\numberline {3.2}Session Tree}{16}{section.43}%
-\contentsline {subsection}{\numberline {3.2.1}Feed Limitations}{16}{subsection.44}%
-\contentsline {subsection}{\numberline {3.2.2}Initialization}{16}{subsection.45}%
-\contentsline {subsection}{\numberline {3.2.3}Pointer Feeds}{17}{subsection.47}%
-\contentsline {subsection}{\numberline {3.2.4}Producer vs Consumer}{18}{subsection.50}%
-\contentsline {subsection}{\numberline {3.2.5}Handling the DMX Values}{19}{subsection.51}%
-\contentsline {section}{\numberline {3.3}Resource Management}{20}{section.52}%
-\contentsline {subsection}{\numberline {3.3.1}Resource Manager Loop}{20}{subsection.53}%
-\contentsline {subsection}{\numberline {3.3.2}Incoming and Outgoing Packets}{20}{subsection.54}%
-\contentsline {subsection}{\numberline {3.3.3}Central DMX Handling}{21}{subsection.55}%
-\contentsline {chapter}{\chapternumberline {4}Conclusion}{22}{chapter.56}%
-\contentsline {section}{\numberline {4.1}Future Work}{23}{section.57}%
+\contentsline {subsection}{\numberline {3.1.4}Producer vs Consumer}{14}{subsection.40}%
+\contentsline {subsection}{\numberline {3.1.5}Handling the DMX Values}{16}{subsection.43}%
+\contentsline {section}{\numberline {3.2}Session Tree}{16}{section.44}%
+\contentsline {subsection}{\numberline {3.2.1}Feed Limitations}{16}{subsection.45}%
+\contentsline {subsection}{\numberline {3.2.2}Initialization}{17}{subsection.46}%
+\contentsline {subsection}{\numberline {3.2.3}Pointer Feeds}{17}{subsection.48}%
+\contentsline {subsection}{\numberline {3.2.4}Producer vs Consumer}{18}{subsection.51}%
+\contentsline {subsection}{\numberline {3.2.5}Handling the DMX Values}{19}{subsection.52}%
+\contentsline {section}{\numberline {3.3}Resource Management}{20}{section.53}%
+\contentsline {subsection}{\numberline {3.3.1}Resource Manager Loop}{20}{subsection.54}%
+\contentsline {subsection}{\numberline {3.3.2}Incoming and Outgoing Packets}{20}{subsection.55}%
+\contentsline {subsection}{\numberline {3.3.3}Central DMX Handling}{21}{subsection.56}%
+\contentsline {chapter}{\chapternumberline {4}Conclusion}{22}{chapter.57}%
+\contentsline {section}{\numberline {4.1}Future Work}{23}{section.58}%
 \vspace {2em}
-\contentsline {chapter}{Bibliography}{24}{appendix*.58}%
-\contentsline {appendix}{\chapternumberline {A}Appendix}{25}{appendix.59}%
+\contentsline {chapter}{Bibliography}{24}{appendix*.59}%
+\contentsline {appendix}{\chapternumberline {A}Appendix}{25}{appendix.60}%
 \vspace {2em}

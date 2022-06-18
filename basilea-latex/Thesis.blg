@@ -3,14 +3,13 @@ Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: Thesis.aux
 The style file: plainnat.bst
 Database file #1: thesis.bib
-Warning--I didn't find a database entry for "fig:fork3"
 Warning--empty year in Micropython
 Warning--empty year in ExpansionBoard
 Warning--empty year in LoPy
 Warning--empty year in tinySSB
 You've used 9 entries,
             2773 wiz_defined-function locations,
-            654 strings with 6608 characters,
+            653 strings with 6599 characters,
 and the built_in function-call counts, 4327 in all, are:
 = -- 399
 > -- 231
@@ -49,4 +48,4 @@ warning$ -- 4
 while$ -- 35
 width$ -- 0
 write$ -- 141
-(There were 5 warnings)
+(There were 4 warnings)

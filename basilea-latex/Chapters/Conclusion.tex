@@ -5,6 +5,7 @@ To reduce the storage size, we first tried to add packet types containing delete
 While there are still a lot improvements that can be made to the system [ADD REF], in its current state a functioning network can be deployed.
 
 \section{Future Work}
+\label{sec:futurework}
 A lot of settings can be tweaked to optimize the packet requesting. In the session tree for example, feeds on a higher layer or the root feed could be given higher priority. If the priority is too high, a lot of unanswered want requests will be sent. If it is too low, it can take a long time until the tree finally adds a new pointer layer. Maybe dynamically changing priorities can be something that could be looked at. For example if a new packet was appended to the root feed, increase the root feed's priority until the request is unsuccessful. Further session trees may be optimized by changing the number of pointer packets per pointer feed or having only a pointer to a session feed every $x$ feeds. This could reduce the number of pointers while still having a sliding window. \\
 Obviously the deletion of feeds from storage must be implemented to be able to let a device run over a long period of time. \\
 Further testing a system with more nodes over a long period of time could potentially point to some bugs that have to be fixed before a reliable network can be deployed. And finally connecting it to a solar panel and deploying it outdoors will truly demonstrate if the concept of the system works. \\

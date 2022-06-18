@@ -121,7 +121,7 @@ When a chain 20 packet is at the end of a feed, the whole chain has to be comple
 
 
 \subsection{Creating Child Feeds}
-Considering that every node has only its one ID Feed where it appends all data, this one feed could quite rapidly become large, confusing and impractical. To tackle this problem we add more functionality to the append-only-log concept. We add two packet types that are used to create new feeds from within an existing feed. The first packet type declares a new child feed and the second packet type is used in the newly created feed to affirm it is a child feed.
+Considering that every node has only its one ID Feed where it appends all data, this one feed could quite rapidly become large, and overloaded with packets of all sorts. To tackle this problem we add more functionality to the append-only-log concept. We add two packet types that are used to create new feeds from within an existing feed. The first packet type declares a new child feed and the second packet type is used in the newly created feed to affirm it is a child feed.
 
 \begin{figure}
 \centering
@@ -130,11 +130,11 @@ Considering that every node has only its one ID Feed where it appends all data, 
 \label{fig:mk_child}
 \end{figure}
 
-The advantage of having multiple feeds is not only to separate packets for different applications into different feeds, it also has the practical advantage of now being able to request packets for both feeds individually. Depending on the importance of the feeds we can now optimize the request by prioritizing certain feeds over others. [ADD REF] Creating a child feed increments the number of entries in the DMX table which has to carefully manage the want requests to not overload the network or to use too much computing power. \\
+The advantage of having multiple feeds is not only to separate packets for different applications into different feeds, now the device is also able to request packets for both feeds individually. Depending on the importance of the feeds we can now optimize the request by prioritizing certain feeds over others by sending more want requests for higher priority feeds. Creating a child feed increments the number of entries in the DMX table which has to be carefully managed to not overload the network with want requests. \\
 The process of creating a new child feed is similar to creating the ID feed. First a new key-pair has to be created where the public key is used as the feed name and the secret key to sign packets. The node however now has to keep track of the new secret key as well. All key pairs that belong to the node's child feeds are stored in a config file and loaded into memory on start up. If the MKC (make child) packet reaches a node that replicates the feed, it will automatically create and replicate the child feed as well.
 
 \subsection{Creating Continuation Feeds}
-A feature with similar functionality is the creation of a continuation feed. The main idea behind this feature is to prevent feeds from becoming too long. There may exist feeds that get appended a lot of data and therefore grow at a rapid pace. When the feed gets bigger than a manageable size it becomes infeasible to propagate the whole feed through the network and store multiple copies of it on every device. For this use-case a packet type that declares a new feed as a continuation and a type that points to the previous feed are introduced.
+A feature with similar functionality is the creation of continuation feeds. The main idea behind this feature is to prevent feeds from becoming too long. There may exist feeds that get appended a lot of data and therefore grow at a rapid pace. When the feed gets bigger than a manageable size it becomes infeasible to propagate the whole feed through the network and store multiple copies of it on every device. For this use-case a packet type that declares a new feed as a continuation and a type that points to the previous feed are introduced.
 
 \begin{figure}
 \centering
@@ -143,7 +143,7 @@ A feature with similar functionality is the creation of a continuation feed. The
 \label{fig:mk_contd}
 \end{figure}
 
-After a continuation packet is appended to a feed, log entries can no longer be appended, thus new packets for said feed do not need to be requested anymore. However the node still has to respond to incoming want request for the feed to be able to further propagate it through the network. The trust chain in this case is continued through the continuation packets. Using just continuation feeds as in \cref{fig:mk_contd} therefore does not free up storage space or come with any advantage, as still every node needs to build up the complete trust chain (now using two shorter separate instead of one longer feed). How continuation feeds can be useful will be discussed in [ADD REF TO SECTION]. As with child feeds, continuation feeds also have their own key-pairs that are stored in the same config file. If the address to the continuation feed is set to zero, this will be interpreted as ending the feed without continuation (No new feed will be created).
+After a continuation packet is appended to a feed, log entries can no longer be appended, thus new packets for said feed do not need to be requested anymore. However the node still has to respond to incoming want request for the feed to be able to further propagate it through the network. The trust chain in this case is continued through the continuation packets. Using just continuation feeds as in \cref{fig:mk_contd} therefore does not free up storage space or come with any advantage, as still every node needs to build up the complete trust chain (now using two shorter separate instead of one longer feed). How continuation feeds can be useful will be discussed in \cref{sec:session}. As with child feeds, continuation feeds also have their own key-pairs that are stored in the same config file. If the address to the continuation feed is set to zero, this will be interpreted as ending the feed without continuation (No new feed will be created).
 
 
 
