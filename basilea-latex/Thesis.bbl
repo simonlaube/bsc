@@ -47,18 +47,16 @@ Jansen~C. Liando, Amalinda Gamage, Agustinus~W. Tengourtius, and Mo~Li.
 \newblock \url{https://github.com/micropython/micropython}.
 \newblock accessed: 2022-07-16.
 
-\bibitem[{Pycom}({\natexlab{a}})]{ExpansionBoard}
+\bibitem[{Pycom}()]{ExpansionBoard}
 {Pycom}.
-\newblock
-  \url{https://pycom.github.io/pydocs/datasheets/boards/expansion3.html},
-  {\natexlab{a}}.
+\newblock URL
+  \url{https://pycom.github.io/pydocs/datasheets/boards/expansion3.html}.
 \newblock accessed: 2022-07-16.
 
-\bibitem[{Pycom}({\natexlab{b}})]{LoPy}
-{Pycom}.
-\newblock
-  \url{https://pycom.github.io/pydocs/datasheets/development/lopy4.html},
-  {\natexlab{b}}.
+\bibitem[Pycom()]{LoPy}
+Pycom.
+\newblock URL
+  \url{https://pycom.github.io/pydocs/datasheets/development/lopy4.html}.
 \newblock accessed: 2022-07-16.
 
 \bibitem[Tarr et~al.(2019)Tarr, Lavoie, Meyer, and

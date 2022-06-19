@@ -10,37 +10,37 @@ Warning--empty year in LoPy
 Warning--empty year in tinySSB
 You've used 10 entries,
             2773 wiz_defined-function locations,
-            656 strings with 6653 characters,
-and the built_in function-call counts, 4620 in all, are:
-= -- 423
+            657 strings with 6646 characters,
+and the built_in function-call counts, 4610 in all, are:
+= -- 419
 > -- 241
 < -- 9
-+ -- 84
++ -- 83
 - -- 73
-* -- 330
-:= -- 695
+* -- 328
+:= -- 691
 add.period$ -- 41
 call.type$ -- 10
 change.case$ -- 48
-chr.to.int$ -- 9
+chr.to.int$ -- 10
 cite$ -- 25
 duplicate$ -- 220
 empty$ -- 385
 format.name$ -- 85
-if$ -- 1003
-int.to.chr$ -- 2
+if$ -- 999
+int.to.chr$ -- 1
 int.to.str$ -- 1
 missing$ -- 5
 newline$ -- 67
 num.names$ -- 42
-pop$ -- 137
+pop$ -- 139
 preamble$ -- 1
 purify$ -- 43
 quote$ -- 0
-skip$ -- 174
+skip$ -- 181
 stack$ -- 0
 substring$ -- 112
-swap$ -- 47
+swap$ -- 45
 text.length$ -- 3
 text.prefix$ -- 0
 top$ -- 0
@@ -48,5 +48,5 @@ type$ -- 110
 warning$ -- 5
 while$ -- 38
 width$ -- 0
-write$ -- 152
+write$ -- 150
 (There were 5 warnings)
