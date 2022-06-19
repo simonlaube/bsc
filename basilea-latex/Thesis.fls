@@ -1192,7 +1192,6 @@ INPUT ./Chapters/Background.tex
 INPUT ./Chapters/Background.tex
 INPUT ./Chapters/Background.tex
 INPUT /usr/local/texlive/2022/texmf-dist/fonts/tfm/adobe/helvetic/phvr7t.tfm
-INPUT /usr/local/texlive/2022/texmf-dist/fonts/tfm/public/cm/cmti10.tfm
 INPUT ./Figures//chirps.png
 INPUT Figures//chirps.png
 INPUT ./Figures//chirps.png
@@ -1229,6 +1228,7 @@ INPUT /usr/local/texlive/2022/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam1
 INPUT /usr/local/texlive/2022/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam7.tfm
 INPUT /usr/local/texlive/2022/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm10.tfm
 INPUT /usr/local/texlive/2022/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm7.tfm
+INPUT /usr/local/texlive/2022/texmf-dist/fonts/tfm/public/cm/cmti10.tfm
 INPUT ./Figures//request.png
 INPUT Figures//request.png
 INPUT ./Figures//request.png

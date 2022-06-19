@@ -1,5 +1,11 @@
 # pure25519/basic.py
 
+# ----------------------------
+# Fix of 'add_elements' for LoPy device with new
+# 'mod' function by Simon Laube
+# and improved by Christian Tschudin
+# ----------------------------
+
 # import binascii
 import hashlib
 import sys
@@ -70,28 +76,7 @@ def double_element(pt): # extended->extended
     Z3 = (F*G) % Q
     T3 = (E*H) % Q
     return (X3, Y3, Z3, T3)
-"""
-def add_elements(pt1, pt2): # extended->extended
-    # add-2008-hwcd-3 . Slightly slower than add-2008-hwcd-4, but -3 is
-    # unified, so it's safe for general-purpose addition
-    (X1, Y1, Z1, T1) = pt1
-    (X2, Y2, Z2, T2) = pt2
-    A = (((Y1-X1)%Q)*((Y2-X2)%Q)) % Q
-    B = (((Y1+X1)%Q)*((Y2+X2)%Q)) % Q
-    C = T1*(2*d)*T2 % Q
-    D = Z1*2*Z2 % Q
-    E = (B-A) % Q
-    F = (D-C) % Q
-    G = (D+C) % Q
-    H = (B+A) % Q
-    X3 = (E*F) % Q
-    Y3 = (G*H) % Q
-    T3 = (E*H) % Q
-    temp = F*G
-    temp2 = mod(temp, Q)
-    Z3 = temp2
-    return (X3, Y3, Z3, T3)
-"""
+    
 def add_elements(pt1, pt2): # extended->extended
     # add-2008-hwcd-3 . Slightly slower than add-2008-hwcd-4, but -3 is
     # unified, so it's safe for general-purpose addition
@@ -110,7 +95,6 @@ def add_elements(pt1, pt2): # extended->extended
     T3 = (E*H) % Q
     Z3 = mod(F*G, Q)
     return (X3, Y3, Z3, T3)
-
 
 def mod(num, a):
     res = num >> (33*8)
