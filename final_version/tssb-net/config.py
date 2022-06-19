@@ -1,3 +1,7 @@
+# -------------------------------------------------
+# Implementation by Simon laube
+# -------------------------------------------------
+
 import os
 from tinyssb import ssb_util
 import pure25519

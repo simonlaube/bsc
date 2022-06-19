@@ -1,3 +1,7 @@
+# -------------------------------------------------
+# Implementation by Simon laube
+# -------------------------------------------------
+
 class PriorityQueue:
     """Implementation for the TinySSB ressource manager queue.
     Highest Priority: 0. Priorities get lower the higher the priority number is.

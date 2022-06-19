@@ -1,4 +1,4 @@
-\begin{thebibliography}{9}
+\begin{thebibliography}{10}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -26,6 +26,11 @@ Anders Carlsson, Ievgeniia Kuzminykh, Robin Franksson, and Alexander Liljegren.
 Scott~G. Kelly and Sheila Frankel.
 \newblock Using hmac-sha-256, hmac-sha-384, and hmac-sha-512 with ipsec.
 \newblock \emph{RFC}, 4868:\penalty0 1--21, 2007.
+
+\bibitem[Laube()]{Thesis}
+Simon Laube.
+\newblock URL \url{https://github.com/simonlaube/bsc}.
+\newblock 2022-07-19.
 
 \bibitem[Liando et~al.(2019)Liando, Gamage, Tengourtius, and
   Li]{10.1145/3293534}
@@ -72,6 +77,6 @@ Dominic Tarr, Erick Lavoie, Aljoscha Meyer, and Christian Tschudin.
 Christian Tschudin.
 \newblock personal communication.
 \newblock URL \url{https://github.com/tschudin/tinyssb}.
-\newblock 2022-03-23.
+\newblock 2022-07-16.
 
 \end{thebibliography}

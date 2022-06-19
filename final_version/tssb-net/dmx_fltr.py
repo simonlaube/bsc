@@ -1,3 +1,7 @@
+# -------------------------------------------------
+# Implementation by Simon laube
+# -------------------------------------------------
+
 import sys
 import time
 import _thread

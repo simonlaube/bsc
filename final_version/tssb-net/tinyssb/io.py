@@ -1,4 +1,6 @@
-# tinyssb/io.py
+# -------------------------------------------------
+# Implementation by Christian Tschudin
+# -------------------------------------------------
 
 import binascii
 import os

@@ -1,3 +1,10 @@
+# -------------------------------------------------
+# Implementation by Maximilian Barth
+# Functions 'create_tree_root_feed', 'load_tree_cache',
+# 'append_to_tree_cache', 'delete_from' and some 
+# other minor changes to the code by Simon Laube
+# -------------------------------------------------
+
 import os
 import sys
 from .feed import Feed

@@ -1,3 +1,7 @@
+# -------------------------------------------------
+# Implementation by Simon laube
+# -------------------------------------------------
+
 from ressource_manager import RessourceManager
 from tinyssb import io
 

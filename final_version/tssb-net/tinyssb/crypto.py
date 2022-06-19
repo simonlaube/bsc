@@ -1,3 +1,7 @@
+# -------------------------------------------------
+# Implementation by Maximilian Barth
+# -------------------------------------------------
+
 import hashlib
 import pure25519
 

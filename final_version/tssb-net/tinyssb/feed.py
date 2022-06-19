@@ -1,3 +1,8 @@
+# -------------------------------------------------
+# Implementation by Maximilian Barth
+# Some minor changes to the code by Simon Laube
+# -------------------------------------------------
+
 import hashlib
 import os
 import sys

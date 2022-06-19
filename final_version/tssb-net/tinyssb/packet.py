@@ -1,3 +1,9 @@
+# -------------------------------------------------
+# Implementation by Maximilian Barth
+# Functions 'create_tree_packet', 'create_fork_packet' 
+# and some other minor changes to the code by Simon Laube
+# -------------------------------------------------
+
 import hashlib
 import sys
 from .crypto import sign_elliptic

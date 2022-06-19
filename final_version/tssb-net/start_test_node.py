@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+
+# -------------------------------------------------
+# Implementation by Simon laube
+# -------------------------------------------------
+
 import sys
 from tinyssb import io
 from ressource_manager import RessourceManager

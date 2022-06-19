@@ -1,3 +1,7 @@
+# -------------------------------------------------
+# Implementation by Simon laube
+# -------------------------------------------------
+
 from tinyssb import ssb_util, packet
 import fork_tree
 import session_tree
