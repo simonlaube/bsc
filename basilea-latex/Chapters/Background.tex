@@ -24,7 +24,7 @@
 %\end{equation}
 %A Turing Machine is a 7-Tuple even if defined in the text, as in $M = \langle Q, \Gamma, b, \Sigma, \delta, q_0, F \rangle$.
 
-Important concepts that are used in this thesis are presented in this section. A Summary of LoRa Technology, a short description of the Pycom devices and an overview of the TinySSB Protocol and its functionality follow.
+Important concepts that are used in this thesis are presented in this section. A Summary of LoRa Technology, a short description of the LoPy 4 devices and an overview of the TinySSB Protocol and its functionality follow.
 \section{Long Range (LoRa) Wireless Technology}
 \label{sec:lora}
 In recent years the number of devices connected to the Internet of Things (IoT) has been increasing rapidly. Since a lot of those devices do not need to transfer high amounts of data and rather focus on using as little energy as possible, LoRa and similar technologies have been developed to serve those use-cases. In this section we will give a short overview of how LoRa works and how we can adjust its parameters. \\
@@ -40,7 +40,7 @@ In \cref{fig:chirps} we can see ten upchirps (preamble) and two downchirps (star
 
 (Sources for \cref{sec:lora} are~\cite{10.1007/978-3-030-01168-0_11} and~\cite{10.1145/3293534})
 
-\section{Pycom 4 and Micropython}
+\section{LoPy 4 and Micropython}
 The hardware component of this project is a device that runs on little energy and is capable of sending and receiving packets using LoRa technology. The devices represent the nodes in the network. The specific type chosen for this project is called 'LoPy 4'. Additionally to being able to communicate over LoRa, it can also receive data over bluetooth and WiFi.~\cite{LoPy} To be able to connect it to a computer, an additional board - the 'Expansion Board v3.0' - is used where the LoPy device can be connected to. Among additional functionality (LED status light, microSD card slot and further additions) this board has a USB port that can be used to power the device and to upload programs to it.~\cite{ExpansionBoard} \\
 The code written in this thesis uses the language Micropython which uses for the most part the same syntax as normal Python. It is a smaller version of Python using only a subset of its libraries and is specially optimized for microcontrollers. \cite{Micropython} \\
 While in this project LoPy 4 devices were used, any other device that can run Micropython and has LoRa capability - and similar memory size and other specifications - should be able to run the code written for this thesis and be deployed within the same network.

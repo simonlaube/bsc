@@ -21,7 +21,6 @@ class SessionTree:
         if self.is_critical:
             self._collect(feed_mngr)
         print(self.__str__(feed_mngr))
-        print(dmx_fltr)
     
     def demo_print(self, dict, current_f, feed_mngr):
         """Prints the tree and colors the requests."""
@@ -217,7 +216,7 @@ class SessionTree:
                 print('created continuation feed')
             # add ptr packet and create feed if not yet present
             elif append_type == 'ptr':
-                print('new ptr feed: ' + str(buf[8:40]))
+                # print('new ptr feed: ' + str(buf[8:40]))
                 fd = feed_mngr.get_feed(buf[8:40])
                 if fd == None: # update new pointer feeds
                     fd = feed_mngr.create_feed(buf[8:40])
@@ -238,7 +237,6 @@ class SessionTree:
 
             self.load_dmx(dmx_fltr, feed_mngr)
             print(self.__str__(feed_mngr))
-            print(dmx_fltr)
         return pkt
 
     def _next_dmx(self, feed):
