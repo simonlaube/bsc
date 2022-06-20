@@ -37,5 +37,4 @@
 \contentsline {section}{\numberline {4.1}Future Work}{23}{section.59}%
 \vspace {2em}
 \contentsline {chapter}{Bibliography}{24}{appendix*.60}%
-\contentsline {appendix}{\chapternumberline {A}Appendix}{25}{appendix.61}%
 \vspace {2em}
