@@ -2,6 +2,7 @@
 \beamer@sectionintoc {2}{Motivation}{3}{0}{1}
 \beamer@sectionintoc {3}{Goals}{4}{0}{2}
 \beamer@sectionintoc {4}{TinySSB}{7}{0}{3}
-\beamer@sectionintoc {5}{Development Process}{11}{0}{4}
-\beamer@sectionintoc {6}{Implementation}{17}{0}{5}
-\beamer@sectionintoc {7}{Next steps and challenges}{29}{0}{6}
+\beamer@sectionintoc {5}{Feed-Trees}{8}{0}{4}
+\beamer@sectionintoc {6}{Development Process}{19}{0}{5}
+\beamer@sectionintoc {7}{Proof of Concept}{21}{0}{6}
+\beamer@sectionintoc {8}{Future Work}{23}{0}{7}
