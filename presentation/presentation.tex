@@ -104,7 +104,9 @@
     	\begin{itemize}
 	    \item Tiny Version of Secure Scuttlebutt (Peer-to-Peer Communication Protocol) 
     	    \item Append-Only-Logs
-    	    \item Trust Anchors and Chain of Trust
+	    \item Nodes Replicate Feeds (Packet Requesting)
+	    \item Signed Packets
+	    \item Trust Anchors and Chain of Trust (Authenticity, Integrity)
 	\end{itemize}
 \end{itemize}        
 \end{frame}
@@ -117,6 +119,7 @@
     \item Everything Stored in Feeds
     \item Child Feeds
     \item Continuation Feeds
+    
 \end{itemize}        
 \end{frame}
 
@@ -126,11 +129,11 @@
 \begin{frame}[c]{Limitation: Reverting Packets}
         \includegraphics[width=1\textwidth]{images/fork_1.pdf}
         \begin{itemize}
-        		\item E.g. Update Feed (Packets depending on previous packets)
+        		\item E.g. Update Feed (Old packets are still of importance)
 	\end{itemize}
 \end{frame}
 
-\begin{frame}[c]{Limitation: Reverting Packets}
+\begin{frame}[c]{Simple Fix}
         \includegraphics[width=1\textwidth]{images/fork_2.pdf}
         \begin{itemize}
         		\item (+): faulty packets are ignored, simple data structure (feed)
@@ -138,15 +141,15 @@
 	\end{itemize}
 \end{frame}
 
-\begin{frame}[c]{Limitation: Reverting Packets}
-        \includegraphics[width=1\textwidth]{images/fork_3.pdf}
-        \begin{itemize}
-        		\item (+): new packets in separate "trust-chain-branch"
-		\item (-): faulty packets still in storage, feed with faulty packets can still potentially grow, unclear where new feed continues, only one time emergency feed
-	\end{itemize}
-\end{frame}
+%\begin{frame}[c]{Limitation: Reverting Packets}
+%        \includegraphics[width=1\textwidth]{images/fork_3.pdf}
+%        \begin{itemize}
+%        		\item (+): new packets in separate "trust-chain-branch"
+%		\item (-): faulty packets still in storage, feed with faulty packets can still potentially grow, unclear where new feed %continues, only one time emergency feed
+%	\end{itemize}
+%\end{frame}
 
-\begin{frame}[c]{Limitation: Reverting Packets}
+\begin{frame}[c]{Fork}
         \includegraphics[width=1\textwidth]{images/fork_4.pdf}
         \begin{itemize}
         		\item (+): defined fork position, old feed can stop requesting packets, \\faulty packets can be deleted
@@ -169,15 +172,15 @@
 \end{itemize}
 \end{frame}
 
-\begin{frame}[c]{Limitation: Deleting Old Packets}
-\includegraphics[width=1\textwidth]{images/session_2.pdf}
+\begin{frame}[c]{Quick Fix}
+\includegraphics[width=0.5\textwidth]{images/session_2i.png}
 \begin{itemize}
 	\item (+): Storage problem solved on producer node
 	\item (-): Consumer may lose chain of trust
 \end{itemize}
 \end{frame}
 
-\begin{frame}[c]{Limitation: Deleting Old Packets}
+\begin{frame}[c]{Continuation Feeds}
 \includegraphics[width=1\textwidth]{images/session_3.pdf}
 \begin{itemize}
 	\item (+): Storage problem solved on producer node
@@ -185,7 +188,7 @@
 \end{itemize}
 \end{frame}
 
-\begin{frame}[c]{Limitation: Deleting Old Packets}
+\begin{frame}[c]{Deleting Old Feeds}
 \includegraphics[width=1\textwidth]{images/session_4.pdf}
 \begin{itemize}
 	\item (+): Old feeds can be deleted, Consumer reaches new feeds
@@ -193,42 +196,23 @@
 \end{itemize}
 \end{frame}
 
-\begin{frame}[c]{Addition: Session-Tree}
-\includegraphics[width=0.9\textwidth]{images/session_5.png}      
+\begin{frame}[c]{Solution: Session-Tree}
+\includegraphics[width=0.9\textwidth]{images/session_5i.png}      
+\end{frame}
+
+\begin{frame}[c]{Solution: Session-Tree}
+\includegraphics[width=0.9\textwidth]{images/session_6.png}      
 \end{frame}
 
 \begin{frame}[c]{Storage and Energy Usage}
 \begin{itemize}
 	\item Trees have different storage limitation strategies
-	\item Energy consumption reduced with efficient dmx requesting / handling
+	\item Energy consumption reduced with efficient packet requesting / handling
 \end{itemize}
 \end{frame}
 
 % ----------------------------------------------------------------
-\section{Development Process}
-
-\begin{frame}[c]{Development Setup}
-\begin{itemize}
-    \item Micropython
-    \item Test Code on Computer (use UDP)
-    \item Test Code on LoPy 4 (use LoRa)
-\end{itemize}        
-\end{frame}
-
-\begin{frame}[c]{Issues}
-\begin{itemize}
-    \item Stack Overflows
-    	\begin{itemize}
-	    \item Too much memory usage (not noticed on computer)
-	    \item Format of LoPy 4 disk
-	\end{itemize}
-    \item Testing on LoPy much slower (e.g. Ed25519)
-    \item PyMakr Extension (Visual Studio, Atom)
-\end{itemize}        
-\end{frame}
-
-% ----------------------------------------------------------------
-\section{Proof of Concept}
+\section{Demo}
 
 \begin{frame}[c]{Real Life Test}
 %\includegraphics[width=0.5\textwidth]{images/poc_1.JPG}
@@ -254,13 +238,13 @@
 \end{frame}
 
 % ----------------------------------------------------------------
-\section{Future Work}
-\begin{frame}[c]{Future Work}
-\begin{itemize}
-\item Less pointers in Session-Tree
-\item Optimize DMX requesting (dynamic prioritization)
-\end{itemize}
-\end{frame}
+%\section{Future Work}
+%\begin{frame}[c]{Future Work}
+%\begin{itemize}
+%\item Less pointers in Session-Tree
+%\item Optimize Packet Requesting (Dynamic Prioritization)
+%\end{itemize}
+%\end{frame}
 
 
 
